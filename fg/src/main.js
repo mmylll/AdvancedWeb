@@ -4,6 +4,8 @@ import router from './router'
 import store from './store'
 import VueAxios from "vue-axios";
 import axios from "axios";
+import message from './components/messageJS'
+
 
 axios.defaults.baseURL = process.env.VUE_APP_SERVER
 axios.interceptors.request.use((config) => {
@@ -23,4 +25,4 @@ axios.interceptors.response.use(response => {
 })
 
 
-createApp(App).use(store).use(router).use(VueAxios, axios).mount('#app')
+createApp(App).use(store).use(router).use(message.register).use(VueAxios, axios).mount('#app')
