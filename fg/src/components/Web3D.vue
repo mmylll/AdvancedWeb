@@ -34,8 +34,7 @@ export default {
       scene = new THREE.Scene()
       this.render = new THREE.WebGLRenderer({antialias: true})
       this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-      this.camera.position.set(0, 5, 10)
-      this.camera.lookAt(0, 10, 0)
+      this.camera.position.set(0, 100, 0)
 
       this.render.setClearColor(0xffffff, 1.0)
       this.render.setSize(window.innerWidth, window.innerHeight)
@@ -43,13 +42,14 @@ export default {
       this.setBackground()
       this.addMeshes()
       this.addLight()
+      this.addCylinder(3)
       document.getElementById('main').appendChild(this.render.domElement)
       let controls = new OrbitControls(this.camera, this.render.domElement)
       controls.update()
       this.renderCanvas()
     },
     addMeshes() {
-      let plane = new THREE.PlaneGeometry(300, 300)
+      let plane = new THREE.PlaneGeometry(800, 800)
       let floorTexture = new THREE.TextureLoader().load(this.texture.floor, () => {
         floorTexture.wrapS = THREE.RepeatWrapping
         floorTexture.wrapT = THREE.RepeatWrapping
@@ -60,12 +60,37 @@ export default {
       })
       let planeMesh = new THREE.Mesh(plane, planeMaterial)
       scene.add(planeMesh)
+      this.camera.lookAt(planeMesh)
       planeMesh.name = 'planeMesh'
       planeMesh.rotation.x = Math.PI / 2
       planeMesh.position.set(0, -1, 0)
     },
+
+    addCylinder(number) {
+      let geometry, cylinder
+      let material = new THREE.MeshBasicMaterial({color: 0xffff00});
+      for (let i = 0; i < 3; i++) {
+        geometry = new THREE.CylinderGeometry(5, 5, 150, 32);
+        cylinder = new THREE.Mesh(geometry, material);
+        scene.add(cylinder)
+        cylinder.name = 'cylinder' + i
+        cylinder.position.set(-200 + 200 * i, 75, -50)
+      }
+
+      cylinder = scene.getObjectByName('cylinder0')
+      let littleCylinder
+      material = new THREE.MeshLambertMaterial({color: 0xffff00})
+      for (let i = 0; i < number; i++) {
+        geometry = new THREE.CylinderGeometry(20 * (number - i), 20 * (number - i), 10, 32)
+        littleCylinder = new THREE.Mesh(geometry, material)
+        scene.add(littleCylinder)
+        littleCylinder.name = 'littleCylinder' + i
+        littleCylinder.position.set(cylinder.position.x, 5 + 10 * i, cylinder.position.z)
+      }
+    },
+
     addLight() {
-      let light = new THREE.AmbientLight('#ECE20E',1)
+      let light = new THREE.AmbientLight('#ECE20E', 1)
       scene.add(light)
     },
 
