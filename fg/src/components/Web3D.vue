@@ -9,8 +9,10 @@ import * as THREE from 'three'
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
 import {ConvexGeometry} from 'three/examples/jsm/geometries/ConvexGeometry.js'
 import {BufferGeometryUtils} from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader'
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'
 
-let scene
+let scene, role;
 export default {
   name: "Web3D",
   data() {
@@ -26,7 +28,23 @@ export default {
       background: require('../assets/skyBox/back3.jpg'),
       texture: {
         floor: require('../assets/texture/floor.jpg')
-      }
+      },
+
+      // 角色
+      stateList: {},
+      actionMap: {
+        up: { direction: 'up', rotation: Math.PI, axes: 'z' },
+        down: { direction: 'down', rotation: 0, axes: 'z' },
+        left: { direction: 'left', rotation: - Math.PI / 2, axes: 'x' },
+        right: { direction: 'right', rotation: Math.PI / 2, axes: 'x' }
+      },
+      nopeAction: { direction: null },
+      nextAction: { direction: 'down', rotation: 0 },
+      clock: null,
+      mixer: null,
+      currentAction: null,
+      previousAction:null,
+      lastkey: ''
     }
   },
   methods: {
@@ -38,6 +56,7 @@ export default {
 
       this.render.setClearColor(0xffffff, 1.0)
       this.render.setSize(window.innerWidth, window.innerHeight)
+      this.clock = new THREE.Clock();
 
       this.setBackground()
       this.addMeshes()
@@ -107,17 +126,119 @@ export default {
       this.render.render(scene, this.camera)
     },
     animate() {
+      var dt = this.clock.getDelta()
+      if (this.mixer){
+        this.mixer.update(dt)
+      }
+      this.handleRoleAction()
       this.renderCanvas()
       requestAnimationFrame(() => {
         this.animate()
       })
+
+    },
+
+
+    // 创建人物
+    createRole() {
+      // model
+      const loader = new GLTFLoader()
+      const dracoLoader = new DRACOLoader()
+      dracoLoader.setDecoderPath('/draco/')
+      dracoLoader.preload()
+      loader.setDRACOLoader(dracoLoader)
+
+      loader.load('3D/RobotExpressive.glb', gltf => {
+        this.role = gltf.scene
+        this.role.position.y = 0
+        this.role.scale.set(7,7,7)// 设置模型大小
+
+        this.mixer = new THREE.AnimationMixer(this.role);
+        this.stateList.Walking = this.mixer.clipAction(gltf.animations[10]);
+        this.stateList.Standing = this.mixer.clipAction(gltf.animations[8]);
+        // 设置下面两项主要是站着的时候，别抖了
+        this.stateList.Standing.clampWhenFinished = true;
+        this.stateList.Standing.loop = THREE.LoopOnce;
+        this.currentAction = this.stateList.Standing;
+        this.currentAction.play();
+        scene.add(this.role);
+
+      }, undefined, function (e) {
+        console.error(e);
+      });
+    },
+    keyPressed(event) {
+      var key = event.keyCode;
+      if (this.lastkey != key) {
+        this.lastkey = key;
+        this.fadeToAction('Walking', 0.2);
+      }
+      switch (key) {
+        case 87:
+          /*w*/
+          this.nextAction = this.actionMap.up;
+          break;
+        case 65:
+          /*a*/
+          this.nextAction = this.actionMap.left;
+          break;
+
+        case 83:
+          /*s*/
+          this.nextAction = this.actionMap.down;
+          break;
+        case 68:
+          /*d*/
+          this.nextAction = this.actionMap.right;
+          break;
+      }
+      if (this.role) this.role.rotation.y = this.nextAction.rotation;
+    },
+    keyUp() {
+      this.lastkey = null;
+      this.nextAction = this.nopeAction;
+      this.fadeToAction('Standing', 0.2);
+    },
+    handleRoleAction() {
+      var flag = 0
+      if (this.role) {
+        if (this.nextAction.direction == 'down' || this.nextAction.direction == "right") {
+          flag = 1;
+        } else if (this.nextAction.direction == 'up' || this.nextAction.direction == "left") {
+          flag = -1;
+        }
+        else {
+          flag = 0;
+        }
+        this.role.position[this.nextAction.axes] += 0.2 * flag;
+      }
+    },
+    fadeToAction(name, duration) {
+      this.previousAction = this.currentAction;
+      this.currentAction = this.stateList[name];
+      if (this.previousAction !== this.currentAction) {
+        this.previousAction.fadeOut(duration);
+      }
+      if (this.currentAction) {
+        this.currentAction
+                .reset()
+                .setEffectiveTimeScale(1)
+                .setEffectiveWeight(1)
+                .fadeIn(duration)
+                .play();
+      }
     }
   },
   mounted() {
     this.init()
+    this.createRole()
+    window.addEventListener('keydown', this.keyPressed, false);
+    window.addEventListener('keyup', this.keyUp, false)
     this.animate()
-
   }
+
+
+
 }
 </script>
 
