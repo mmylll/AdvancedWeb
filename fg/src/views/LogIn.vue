@@ -127,11 +127,11 @@ export default {
     },
     login() {
       if (this.checkLogin()) {
+        let postData = new URLSearchParams();
+        postData.append('username',this.loginForm.Username);
+        postData.append('password',this.loginForm.Password);
         console.log(this.loginForm)
-        this.axios.post('/Login', {
-          username: this.loginForm.Username,
-          password: this.loginForm.Password,
-        })
+        this.axios.post('/Login', postData)
           .then(resp => {
             if (resp.status === 200) {
               Message({ text: '登录成功', type: 'success' })

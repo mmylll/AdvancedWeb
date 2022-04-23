@@ -6,6 +6,8 @@ import com.example.backend.repository.UserRepository;
 import com.example.backend.response.ResponseResult;
 import com.example.backend.service.UserService;
 import com.example.backend.utils.JWTUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,7 +34,8 @@ public class UserController {
 
     @PostMapping("Login")
     public ResponseResult login(HttpServletResponse response, @RequestParam(value = "username") String username, @RequestParam(value = "password") String password){
-        response.setHeader(JWTUtils.TOKEN, userService.login(username,password));
+//    public ResponseResult login(HttpServletResponse response,@RequestBody JSONObject jsonParam) throws JSONException {
+        response.setHeader(JWTUtils.TOKEN, userService.login(username, password));
         return new ResponseResult("登录成功");
     }
 
