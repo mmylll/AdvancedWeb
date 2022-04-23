@@ -69,7 +69,8 @@
 </template>
 
 <script>
-import Message from '../components/messageJS.js'
+import { ElMessage }from "element-plus"
+import  Qs  from 'qs'
 export default {
   // eslint-disable-next-line vue/multi-word-component-names
   name: 'Log',
@@ -127,55 +128,51 @@ export default {
     },
     login() {
       if (this.checkLogin()) {
-        let postData = new URLSearchParams();
-        postData.append('username',this.loginForm.Username);
-        postData.append('password',this.loginForm.Password);
-        console.log(this.loginForm)
-        this.axios.post('/Login', postData)
+        this.axios.post('/Login', Qs.stringify({
+          username: this.loginForm.Username,
+          password: this.loginForm.Password,
+        }))
           .then(resp => {
-            if (resp.status === 200) {
-              Message({ text: '登录成功', type: 'success' })
+            if (resp.data.status === 200) {
+              ElMessage.success('登录成功')
               this.$router.replace('/About')
             } else {
-              Message({ text: '登录失败，账号出错', type: 'error' })
+              ElMessage.error(resp.data.message)
             }
           })
           .catch(error => {
-            console.log(error)
-            Message({ text: '登录失败，账号出错', type: 'error' })
+            ElMessage.error('登录失败，账号出错');
           })
 
-        // 测试用，无需检验 登录直接跳转到主页面
-        //this.$router.replace('/home')
       } else {
-        Message({ text: '登录信息不完整', type: 'error' })
+        ElMessage.warning("登录信息不完整")
       }
     },
     register(){
        if (this.checkRegister()){
-        this.axios.post('/Register', {
+        this.axios.post('/Register', Qs.stringify({
           username: this.registerForm.Username,
           password: this.registerForm.Password,
           email: this.registerForm.email
-        })
+        }))
           .then(resp => {
             console.log(resp)
             // 根据后端的返回数据修改
-            if (resp.status === 200) {
+            if (resp.data.status === 200) {
               // 跳转到login
-              Message({ text: '注册成功', type: 'success' })
+              ElMessage.success('注册成功')
             this.toggleClass()
             } else {
-              Message({ text: '注册失败', type: 'error' })
+              ElMessage.error(resp.data.message)
             }
           })
           .catch(error => {
             console.log(error)
-            Message({ text: '注册失败', type: 'error' })
+            ElMessage.error('注册失败')
           })
 
       }else {
-        Message({ text: '注册信息不完整', type: 'error' })
+         ElMessage.warning("注册信息不完整")
       }
     }
   },

@@ -4,10 +4,10 @@ import router from './router'
 import store from './store'
 import VueAxios from "vue-axios";
 import axios from "axios";
-import message from './components/messageJS'
+import ElementPlus from 'element-plus'
+import  'element-plus/dist/index.css'
 
-
-axios.defaults.baseURL = "http://localhost:8080"
+axios.defaults.baseURL = "http://back:8080"
 axios.interceptors.request.use((config) => {
     if (store.state.token != null) {
         config.headers.token = store.state.token
@@ -27,4 +27,4 @@ axios.interceptors.response.use(response => {
 
 
 
-createApp(App).use(store).use(router).use(message.register).use(VueAxios, axios).mount('#app')
+createApp(App).use(store).use(router).use(ElementPlus).use(VueAxios, axios).mount('#app')

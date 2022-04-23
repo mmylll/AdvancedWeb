@@ -10,8 +10,8 @@
   "dependencies": {
     "axios": "^0.26.1",
     "core-js": "^3.8.3",
-    "less": "^4.1.2",
-    "less-loader": "^10.2.0",
+    "element-plus": "^2.1.10",
+    "qs": "^6.10.3",
     "three": "^0.139.2",
     "vue": "^3.0.0",
     "vue-axios": "^3.4.1",
