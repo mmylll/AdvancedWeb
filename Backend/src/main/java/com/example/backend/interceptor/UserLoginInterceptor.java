@@ -18,7 +18,8 @@ public class UserLoginInterceptor implements HandlerInterceptor {
         //http的header中获得token
         String token = request.getHeader(JWTUtils.TOKEN);
         //token不存在
-        if (token == null || token.equals("")) throw new BaseException(ResponseCode.LOGIN_NOT);
+        if (token == null || token.equals(""))
+            throw new BaseException(ResponseCode.LOGIN_NOT);
         //验证token
         String sub = JWTUtils.validateToken(token);
         if (sub == null || sub.equals(""))

@@ -15,7 +15,6 @@ public class UserService {
     private UserRepository userRepository;
 
     public String login(String username,String password) {
-        //phone是除id外的唯一标志 需要进行检查
         if (username.equals(""))
             throw new BaseException(ResponseCode.LOGIN_FALSE);
         User user = userRepository.getByUsername(username);
@@ -27,5 +26,27 @@ public class UserService {
         }else {
             throw new BaseException(ResponseCode.LOGIN_FALSE);
         }
+    }
+
+    public String register(String username,String password,String email){
+        if(userRepository.existsUserByUsername(username)){
+            throw new BaseException(ResponseCode.REGISTER_USERNAME_DUPLICATE);
+        }else{
+            User user = new User(username,password,email);
+            try {
+                userRepository.save(user);
+            }catch (Exception e){
+                throw new BaseException(ResponseCode.REGISTER_FALSE);
+            }
+            return JWTUtils.createToken(username);
+        }
+    }
+
+    public User info(String username){
+        User user = userRepository.getByUsername(username);
+        if(user == null){
+            throw new BaseException(ResponseCode.USER_NOT_EXIST);
+        }
+        return user;
     }
 }

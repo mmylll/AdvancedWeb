@@ -23,7 +23,15 @@ public enum ResponseCode {
 
     LOGIN_FALSE(412,"用户名或密码错误"),
 
-    LOGIN_NOT(413,"未登录");
+    LOGIN_NOT(413,"未登录"),
+
+    REGISTER_USERNAME_DUPLICATE(414,"用户名已存在"),
+
+    REGISTER_FALSE(415,"注册失败"),
+
+    USER_NOT_EXIST(416,"用户不存在"),
+
+    ;
     /**
      * 状态码
      */
