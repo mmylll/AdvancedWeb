@@ -18,13 +18,13 @@
         <div class="img"></div>
         <div class="intro">
           <h3>自我介绍：</h3>
-        <span>....</span>
+          <span>....</span>
         </div>
       </div>
       <div class="">
         <ul>
           <li>
-            <div class="title" >用户名：</div>
+            <div class="title">用户名：</div>
             <input placeholder="AAAAAA" disabled>
           </li>
           <li>
@@ -40,103 +40,115 @@
   </div>
 </template>
 <script>
-  export default {
-    name:'About',
-    data() {
-      return {}
-    },
-    methods: {
-
-    }
-  }
+export default {
+  name: 'About',
+  data() {
+    return {}
+  },
+  methods: {}
+}
 </script>
 <style>
-  .about{
-    color: #2c3e50;
-    background-image: url("../assets/bg1.jpg");
-    background-size: 100%;
-    opacity: 1;
-  }
-  .manu {
-    width: 100%;
-    height: 3.4rem;
-    background-color: #2c3e50;
-    text-align: center;
-  }
-  span{
-    color: white;
-    display: block;
-    float: left;
-    margin: 0 auto;
-    padding: 1rem;
-  }
-  span:hover{
-    cursor:default;
-  }
-  span:hover {
-    background-position:0 -30px;
-    background-color: #999999;
-  }
-  .web3d {
-    margin-left: 15%;
-  }
-  .message {
-    border: chocolate solid 1px;
-    opacity: 97%;
-    border-radius: 10px;
-    color: darkorange;
-  }
-  .info {
-    width: 70%;
-    margin: 0 auto;
-    border: #2c3e50 solid 1px;
-    background-image: none;
-    background-color: white;
-  }
-  .head {
-    align-content: center;
-    width: 100%;
-    height: 20rem;
-    border: darkblue solid 1px;
-    border-radius: 10px;
-  }
-  .img {
-    display: block;
-    border: #2c3e50 solid 1px;
-    width: 150px;
-    height: 150px;
-    padding: 2rem;
-    float: left;
-    margin: 3rem 3rem 3rem 7rem;
-    background-image: url("../assets/logo.png");
-    background-repeat: no-repeat;
-  }
-  .intro {
-    margin: 3rem 3rem 3rem 0rem;
-    display: block;
-    float: left;
-    width: 30rem;
-    height: 13rem;
-    border: #2c3e50 solid 1px;
-  }
-  li{
-    display: block;
-    width: 90%;
-    font-size: 1rem;
-  }
-  .title {
-    text-align: left;
-    font-family: "Arial Black";
-  }
-  input {
-    width: 100%;
-    font-size: 1rem;
-  }
-  .game {
-    border-radius: 10px;
-    height: 20rem;
-    border: #2c3e50 solid 1px;
-  }
+.about {
+  color: #2c3e50;
+  background-image: url("../assets/skyBox/back.jpg");
+  background-size: 100%;
+  opacity: 1;
+}
+
+.manu {
+  width: 100%;
+  height: 3.4rem;
+  background-color: #2c3e50;
+  text-align: center;
+}
+
+span {
+  color: white;
+  display: block;
+  float: left;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+span:hover {
+  cursor: default;
+}
+
+span:hover {
+  background-position: 0 -30px;
+  background-color: #999999;
+}
+
+.web3d {
+  margin-left: 15%;
+}
+
+.message {
+  border: chocolate solid 1px;
+  opacity: 97%;
+  border-radius: 10px;
+  color: darkorange;
+}
+
+.info {
+  width: 70%;
+  margin: 0 auto;
+  border: #2c3e50 solid 1px;
+  background-image: none;
+  background-color: white;
+}
+
+.head {
+  align-content: center;
+  width: 100%;
+  height: 20rem;
+  border: darkblue solid 1px;
+  border-radius: 10px;
+}
+
+.img {
+  display: block;
+  border: #2c3e50 solid 1px;
+  width: 150px;
+  height: 150px;
+  padding: 2rem;
+  float: left;
+  margin: 3rem 3rem 3rem 7rem;
+  background-image: url("../assets/logo.png");
+  background-repeat: no-repeat;
+}
+
+.intro {
+  margin: 3rem 3rem 3rem 0rem;
+  display: block;
+  float: left;
+  width: 30rem;
+  height: 13rem;
+  border: #2c3e50 solid 1px;
+}
+
+li {
+  display: block;
+  width: 90%;
+  font-size: 1rem;
+}
+
+.title {
+  text-align: left;
+  font-family: "Arial Black";
+}
+
+input {
+  width: 100%;
+  font-size: 1rem;
+}
+
+.game {
+  border-radius: 10px;
+  height: 20rem;
+  border: #2c3e50 solid 1px;
+}
 </style>
 
 
