@@ -1,53 +1,83 @@
 <template>
   <div id="main">
-
+    <el-dialog
+        v-model="quitDialog"
+        title="退出"
+        width="30%"
+        center
+    >
+      <h2>是否退出</h2>
+      <div>
+        <el-button @click="quit">确定</el-button>
+        <el-button @click="quitDialog=false">取消</el-button>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import * as THREE from 'three'
 import FirstPersonControls from "../../public/js/FirstPersonControls";
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js'
-import {ConvexGeometry} from 'three/examples/jsm/geometries/ConvexGeometry.js'
-import {BufferGeometryUtils} from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader'
 import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader'
-import {FBXLoader} from 'three/examples/jsm/loaders/FBXLoader'
-import {AnimationMixer} from "three";
+import socket from "@/socket";
+import {getCurrentInstance} from "vue";
 
-let scene, role;
+let scene;
 export default {
   name: "Web3D",
   data() {
     return {
       camera: null,
       render: null,
-      back: require('../assets/skyBox/back.jpg'),
-      bottom: require('../assets/skyBox/bottom.jpg'),
-      left: require('../assets/skyBox/left.jpg'),
-      right: require('../assets/skyBox/right.jpg'),
-      top: require('../assets/skyBox/top.jpg'),
-      front: require('../assets/skyBox/front.jpg'),
+      skybox: {
+        back: require('../assets/skyBox/back.jpg'),
+        bottom: require('../assets/skyBox/bottom.jpg'),
+        left: require('../assets/skyBox/left.jpg'),
+        right: require('../assets/skyBox/right.jpg'),
+        top: require('../assets/skyBox/top.jpg'),
+        front: require('../assets/skyBox/front.jpg'),
+      },
       texture: {
         floor: require('../assets/texture/floor.jpg')
       },
+      // 退出弹窗
+      quitDialog: false,
 
       // 角色
-      stateList: {},
-      actionMap: {
-        up: {direction: 'up', rotation: Math.PI, axes: 'z'},
-        down: {direction: 'down', rotation: 0, axes: 'z'},
-        left: {direction: 'left', rotation: -Math.PI / 2, axes: 'x'},
-        right: {direction: 'right', rotation: Math.PI / 2, axes: 'x'}
+      player: {
+        rx: 0,
+        rz: 0,
+        ry: 0,
+        plate: null
       },
-      nopeAction: {direction: null},
-      nextAction: {direction: 'down', rotation: 0},
+      role: null,
+      stateList: {},
+      // actionMap: {
+      //   up: {direction: 'up', rotation: Math.PI, axes: 'z'},
+      //   down: {direction: 'down', rotation: 0, axes: 'z'},
+      //   left: {direction: 'left', rotation: -Math.PI / 2, axes: 'x'},
+      //   right: {direction: 'right', rotation: Math.PI / 2, axes: 'x'}
+      // },
+      // nopeAction: {direction: null},
+      // nextAction: {direction: 'down', rotation: 0},
       clock: null,
       mixer: null,
       currentAction: null,
       previousAction: null,
+
       lastkey: '',
-      firstPersonControl: null
+      firstPersonControl: null,
+
+      otherPlayer: [],
+      columns: [],
+      loader: null,
+      dracoLoader: null,
+      animations: {
+        walking: null,
+        standing: null
+      },
+      bus: getCurrentInstance().appContext.config.globalProperties.$bus
     }
   },
   methods: {
@@ -64,51 +94,46 @@ export default {
       this.firstPersonControl.connect()
       scene.add(this.firstPersonControl.yawObject)
       this.setBackground()
-      //this.addMeshes()
       this.addLight()
-      // this.addCylinder(3)
       document.getElementById('main').appendChild(this.render.domElement)
-      // let controls = new OrbitControls(this.camera, this.render.domElement)
-      // controls.update()
       this.renderCanvas()
     },
-    addMeshes() {
-      let plane = new THREE.PlaneGeometry(800, 800)
-      let floorTexture = new THREE.TextureLoader().load(this.texture.floor, () => {
-        floorTexture.wrapS = THREE.RepeatWrapping
-        floorTexture.wrapT = THREE.RepeatWrapping
-      })
-      let planeMaterial = new THREE.MeshLambertMaterial({
-        map: floorTexture,
-        side: THREE.DoubleSide
-      })
-      let planeMesh = new THREE.Mesh(plane, planeMaterial)
-      scene.add(planeMesh)
-      this.camera.lookAt(planeMesh)
-      planeMesh.name = 'planeMesh'
-      planeMesh.rotation.x = Math.PI / 2
-      planeMesh.position.set(0, -1, 0)
+    quit() {
+      if (!this.player.plate) {
+        this.$message({
+          message: '必须放下持有的圆盘，才能离开场景',
+          type: 'error'
+        })
+      } else {
+        socket.on('Leave', this.player).then(() => {
+          socket.disconnect()
+          this.$message({
+            message: "退出成功",
+            type: 'success'
+          })
+        })
+      }
+      this.quitDialog = false
     },
 
-    addCylinder(number) {
+    addCylinder() {
       let geometry, cylinder
-      let material = new THREE.MeshBasicMaterial({color: 0xffff00});
-      for (let i = 0; i < 3; i++) {
-        geometry = new THREE.CylinderGeometry(5, 5, 150, 32);
+      let material = new THREE.MeshBasicMaterial({color: 0xC4C2C0}),
+          plateMaterial = new THREE.MeshLambertMaterial({color: 0xffff00})
+      for (let i = 0; i < this.columns.length; i++) {
+        let column = this.columns[i];
+        geometry = new THREE.CylinderGeometry(5, 5, column.height, 32);
         cylinder = new THREE.Mesh(geometry, material);
         scene.add(cylinder)
-        cylinder.name = 'cylinder' + i
+        cylinder.name = 'column' + i
         cylinder.position.set(-200 + 200 * i, 75, -50)
-      }
-      cylinder = scene.getObjectByName('cylinder0')
-      let littleCylinder
-      material = new THREE.MeshLambertMaterial({color: 0xffff00})
-      for (let i = 0; i < number; i++) {
-        geometry = new THREE.CylinderGeometry(20 * (number - i), 20 * (number - i), 10, 32)
-        littleCylinder = new THREE.Mesh(geometry, material)
-        scene.add(littleCylinder)
-        littleCylinder.name = 'littleCylinder' + i
-        littleCylinder.position.set(cylinder.position.x, 5 + 10 * i, cylinder.position.z)
+        for (let plate of column.plates) {
+          let plateGeometry = new THREE.CylinderGeometry(plate.radius, plate.radius, plate.height, 32);
+          let plateMesh = new THREE.Mesh(plateGeometry, plateMaterial)
+          scene.add(plateMesh)
+          plateMesh.name = 'plate' + plate.index;
+          plateMesh.position.set(...cylinder.position);
+        }
       }
     },
 
@@ -116,42 +141,30 @@ export default {
       let light = new THREE.AmbientLight(' 0xaaaaaa', 1)
       scene.add(light)
     },
+
     setBackground() {
       const skyBoxGeometry = new THREE.BoxGeometry(500, 500, 500);
       const textureLoader = new THREE.TextureLoader();
       const skyBoxMaterial = [
         new THREE.MeshBasicMaterial({
-          map:
-              textureLoader.load(this.right), side: THREE.BackSide
+          map: textureLoader.load(this.skybox.right), side: THREE.BackSide
         }),
-// right
         new THREE.MeshBasicMaterial({
-          map:
-              textureLoader.load(this.left), side: THREE.BackSide
+          map: textureLoader.load(this.skybox.left), side: THREE.BackSide
         }),
-// left
         new THREE.MeshBasicMaterial({
-          map:
-              textureLoader.load(this.top), side: THREE.BackSide
+          map: textureLoader.load(this.skybox.top), side: THREE.BackSide
         }),
-// top
         new THREE.MeshBasicMaterial({
-          map:
-              textureLoader.load(this.bottom), side: THREE.BackSide
+          map: textureLoader.load(this.skybox.bottom), side: THREE.BackSide
         }),
-// bottom
         new THREE.MeshBasicMaterial({
-          map:
-              textureLoader.load(this.front), side: THREE.BackSide
+          map: textureLoader.load(this.skybox.front), side: THREE.BackSide
         }),
-// back
         new THREE.MeshBasicMaterial({
-          map:
-              textureLoader.load(this.back), side: THREE.BackSide
+          map: textureLoader.load(this.skybox.back), side: THREE.BackSide
         })
-// front
       ];
-// 创建天空盒子并添加到场景
       const skyBox = new THREE.Mesh(skyBoxGeometry, skyBoxMaterial);
       scene.add(skyBox);
       textureLoader.load(this.texture.floor,
@@ -168,53 +181,34 @@ export default {
             floor.rotation.x = Math.PI / 2;
             scene.add(floor);
           })
-      //scene.background = new THREE.CubeTextureLoader().load([this.right, this.left, this.top, this.bottom, this.front, this.back])
     },
+
+
     renderCanvas() {
       this.render.render(scene, this.camera)
     },
+
     animate() {
       let dt = this.clock.getDelta()
       if (this.mixer) {
         this.mixer.update(dt)
       }
+
       this.firstPersonControl.update(dt);
-      //this.handleRoleAction()
       this.renderCanvas()
       requestAnimationFrame(() => {
         this.animate()
       })
     },
-
-
     // 创建人物
     createRole() {
+      this.loader = new GLTFLoader()
+      this.dracoLoader = new DRACOLoader()
+      this.dracoLoader.setDecoderPath('/draco/')
+      this.dracoLoader.preload()
+      this.loader.setDRACOLoader(this.dracoLoader)
 
-      // const loader = new FBXLoader();
-      // loader.load('3D/Idle.fbx', (object) => {
-      //   this.role = object;
-      //   this.mixer = new AnimationMixer(object);
-      //   object.scale.set(0.1, 0.1, 0.1)
-      //   console.log(object.animations)
-      //   this.stateList.Walking = this.mixer.clipAction(object.animations[1])
-      //   this.currentAction = this.stateList.Walking;
-      //   this.currentAction.play()
-      //   object.traverse(function (child) {
-      //     if (child.isMesh) {
-      //       child.castShadow = true;
-      //       child.receiveShadow = true;
-      //     }
-      //   });
-      //   scene.add(object)
-      // })
-      // model
-      const loader = new GLTFLoader()
-      const dracoLoader = new DRACOLoader()
-      dracoLoader.setDecoderPath('/draco/')
-      dracoLoader.preload()
-      loader.setDRACOLoader(dracoLoader)
-
-      loader.load('3D/RobotExpressive.glb', gltf => {
+      this.loader.load('3D/RobotExpressive.glb', gltf => {
         this.role = gltf.scene
         this.role.position.y = 0
         this.role.scale.set(7, 7, 7)// 设置模型大小
@@ -229,55 +223,26 @@ export default {
         this.currentAction.play();
         scene.add(this.role);
         this.firstPersonControl.role = this.role
+        this.player.username = this.$store.state.username;
+        this.updatePositionAndRotation()
       }, undefined, function (e) {
         console.error(e);
       });
     },
     keyPressed(event) {
-      if (this.lastkey !== event.keyCode) {
+      if (event.keyCode === 81) {
+        this.quitDialog = !this.quitDialog
+      } else if (this.lastkey !== event.keyCode) {
         this.lastkey = event.keyCode;
         this.fadeToAction('Walking', 0.2);
       }
-      //this.fadeToAction('Walking', 0.2);
-      // switch (key) {
-      //   case 87:
-      //     /*w*/
-      //     this.nextAction = this.actionMap.up;
-      //     break;
-      //   case 65:
-      //     /*a*/
-      //     this.nextAction = this.actionMap.left;
-      //     break;
-      //
-      //   case 83:
-      //     /*s*/
-      //     this.nextAction = this.actionMap.down;
-      //     break;
-      //   case 68:
-      //     /*d*/
-      //     this.nextAction = this.actionMap.right;
-      //     break;
-      // }
-      //if (this.role) this.role.rotation.y = this.nextAction.rotation;
     },
     keyUp() {
       this.lastkey = null;
       this.nextAction = this.nopeAction;
       this.fadeToAction('Standing', 0.2);
     },
-    // handleRoleAction() {
-    //   var flag = 0
-    //   if (this.role) {
-    //     if (this.nextAction.direction == 'down' || this.nextAction.direction == "right") {
-    //       flag = 1;
-    //     } else if (this.nextAction.direction == 'up' || this.nextAction.direction == "left") {
-    //       flag = -1;
-    //     } else {
-    //       flag = 0;
-    //     }
-    //     this.role.position[this.nextAction.axes] += flag;
-    //   }
-    // },
+
     fadeToAction(name, duration) {
       this.previousAction = this.currentAction;
       this.currentAction = this.stateList[name];
@@ -293,13 +258,91 @@ export default {
             .fadeIn(duration)
             .play();
       }
+    },
+    renderOtherPlayer() {
+      for (let player of this.otherPlayer) {
+        this.renderAPlayer(player);
+      }
+    },
+    renderAPlayer(player) {
+      this.loader.load('3D/RobotExpressive.glb', gltf => {
+        let role = gltf.scene;
+        role.rotation.set(player.rx, player.ry, player.rz);
+        role.position.set(player.x, player.y, player.z)
+        scene.add(role);
+        let mixer = new THREE.AnimationMixer(role);
+        mixer.clipAction(this.animations.standing).play();
+        role.name = player.username
+      })
+    },
+    getRoomInfo() {
+      this.axios.get('/RoomInfo').then((res) => {
+        this.columns = res.data.columns;
+        this.otherPlayer = res.data.players;
+        this.addCylinder();
+        this.renderOtherPlayer();
+      })
+    },
+    getPlayerByName(username) {
+      for (let player of this.otherPlayer) {
+        if (player.username === username)
+          return player;
+      }
+      return null
+    },
+    socketInit() {
+      if (!socket.connected) {
+        socket.connect();
+      }
+      socket.on('PlayerJoin', (player) => {
+        this.otherPlayer.push(player)
+        this.renderAPlayer(player);
+        this.$message({
+          message: player.username + "加入了游戏",
+          type: 'success'
+        })
+      })
+      socket.on('PlayerLeave', (username) => {
+        let player = this.getPlayerByName(username);
+        if (player !== null) {
+          this.otherPlayer.splice(this.otherPlayer.indexOf(player), 1);
+          let object = scene.getObjectByName(username);
+          scene.remove(object);
+          this.$message({
+            message: username + "离开了游戏",
+            type: 'success'
+          })
+        }
+      })
+      socket.on('PlayerUpdate', (player) => {
+        let object = scene.getObjectByName(player.username);
+        object.rotation.set(player.rx, player.ry, player.rz);
+        object.position.set(player.x, player.y, player.z);
+        let otherPlayer = this.getPlayerByName(player.username);
+        Object.assign(otherPlayer, player);
+      })
+    },
+    updatePositionAndRotation() {
+      this.player.x = this.role.position.x
+      this.player.y = this.role.position.y
+      this.player.z = this.role.position.z;
+      this.player.ry = this.role.rotation.y;
+    },
+    join() {
+      socket.on('Join', this.player)
     }
   },
   mounted() {
     this.init()
+    this.getRoomInfo();
     this.createRole()
+    this.join();
     window.addEventListener('keydown', this.keyPressed, false);
     window.addEventListener('keyup', this.keyUp, false)
+    this.bus.on('modifyRole', () => {
+      this.updatePositionAndRotation()
+      socket.emit('Update', this.player)
+    })
     this.animate()
   }
 
