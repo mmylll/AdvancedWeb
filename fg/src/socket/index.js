@@ -1,6 +1,6 @@
 import io from "socket.io-client";
 
 
-const socket = io('ws://121.4.80.83:7456/')
+const socket = io('ws://localhost:8081/')
 
 export default socket
