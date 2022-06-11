@@ -5,6 +5,10 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.annotation.OnConnect;
 import com.corundumstudio.socketio.annotation.OnDisconnect;
 import com.corundumstudio.socketio.annotation.OnEvent;
+import com.example.backend.model.Message;
+import com.example.backend.repository.UserLogRepository;
+import com.example.backend.utils.UserLog;
+import com.sun.nio.sctp.MessageInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +28,9 @@ public class SocketIOService {
 
     @Autowired
     private SocketIOServer socketIOServer;
+
+    @Autowired
+    private UserLogRepository userLogRepository;
 
     /**
      * Spring IoC容器创建之后，在加载SocketIOService Bean之后启动

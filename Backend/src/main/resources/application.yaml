@@ -1,7 +1,8 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://mysql:3306/hanoi_tower?allowPublicKeyRetrieval=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8
+#    url: jdbc:mysql://mysql:3306/hanoi_tower?allowPublicKeyRetrieval=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8
+    url: jdbc:mysql://121.4.80.83:9980/hanoi_tower?allowPublicKeyRetrieval=true&useSSL=false&useUnicode=true&characterEncoding=UTF-8
     username: root
     password: 122625mmy
 
@@ -27,3 +28,11 @@ socketio:
   pingTimeout: 6000000
   # Ping消息间隔（毫秒），默认25秒。客户端向服务器发送一条心跳消息间隔
   pingInterval: 25000
+
+#柱子信息
+column:
+  height: 100
+
+#块信息
+plate:
+  height: 30

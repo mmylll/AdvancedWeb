@@ -16,6 +16,7 @@ public class SocketIOConfig
 {
     private String host;
 
+    @Value("${socketio.port}")
     private Integer port;
 
     private int bossCount;
