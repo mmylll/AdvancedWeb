@@ -9,12 +9,13 @@
 </template>
 
 <script>
+import socket from "@/socket";
+
 export default {
   name: "Chat",
-  props: ['messages'],
   data() {
     return {
-      message: '',
+      messages: [],
       isShow: false
     }
   },
@@ -24,11 +25,11 @@ export default {
         if (e.code === 'Enter') {
           this.isShow = !this.isShow
           if (this.isShow) {
-            console.log(11)
             this.$refs.messageInput.focus()
           }
           if (!this.isShow) {
-
+            // 发送消息
+            socket.emit('SendMessage', {});
           }
         }
       }
@@ -36,6 +37,10 @@ export default {
   },
   mounted() {
     this.onKeyBoard()
+    // 接收消息
+    socket.on('RecieveMessage', (message) => {
+      
+    })
   }
 }
 </script>

@@ -1,7 +1,7 @@
 <template>
   <div class="room">
     <Web3D/>
-    <Chat :messages="test" :is-show="isShow"/>
+    <Chat/>
   </div>
 </template>
 
@@ -13,17 +13,9 @@ export default {
   name: "Room",
   components: {Web3D, Chat},
   data() {
-    return {
-      isShow: false,
-      test: [{
-        user: '张甲源',
-        content: 'hello , sir'
-      }]
-    }
+    return {}
   },
-  methods: {
-
-  },
+  methods: {},
 
   mounted() {
 
