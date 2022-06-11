@@ -23,7 +23,7 @@ import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader'
 import socket from "@/socket";
 import {getCurrentInstance} from "vue";
 
-let scene;
+let scene,role;
 export default {
   name: "Web3D",
   data() {
@@ -51,7 +51,7 @@ export default {
         ry: 0,
         plate: null
       },
-      role: null,
+      //role: null,
       stateList: {},
       // actionMap: {
       //   up: {direction: 'up', rotation: Math.PI, axes: 'z'},
@@ -225,6 +225,7 @@ export default {
         this.firstPersonControl.role = this.role
         this.player.username = this.$store.state.username;
         this.updatePositionAndRotation()
+
       }, undefined, function (e) {
         console.error(e);
       });
@@ -323,26 +324,30 @@ export default {
       })
     },
     updatePositionAndRotation() {
-      this.player.x = this.role.position.x
-      this.player.y = this.role.position.y
-      this.player.z = this.role.position.z;
-      this.player.ry = this.role.rotation.y;
+      if (this.role !== null) {
+        this.player.x = this.role.position.x
+        this.player.y = this.role.position.y
+        this.player.z = this.role.position.z;
+        this.player.ry = this.role.rotation.y;
+      }
     },
     join() {
       socket.on('Join', this.player)
     }
   },
   mounted() {
+    FirstPersonControls.bus = this.bus;
     this.init()
     this.getRoomInfo();
     this.createRole()
+    this.socketInit()
     this.join();
     window.addEventListener('keydown', this.keyPressed, false);
     window.addEventListener('keyup', this.keyUp, false)
-    this.bus.on('modifyRole', () => {
-      this.updatePositionAndRotation()
-      socket.emit('Update', this.player)
-    })
+    // this.bus.on('modifyRole', () => {
+    //   this.updatePositionAndRotation()
+    //   socket.emit('Update', this.player)
+    // })
     this.animate()
   }
 

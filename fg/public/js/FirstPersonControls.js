@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 
-import {getCurrentInstance} from "vue";
 // W S A D 的keycode
 const KEY_W = 87;
 const KEY_S = 83;
@@ -8,7 +7,7 @@ const KEY_A = 65;
 const KEY_D = 68;
 
 class FirstPersonControls {
-    static bus = getCurrentInstance().appContext.config.globalProperties.$bus
+    static bus;
 
     constructor(camera, domElement) {
         this.domElement = domElement || document.body;
@@ -54,7 +53,8 @@ class FirstPersonControls {
             this.yawObject.rotation.y -= movementX * 0.002;
             if (this.role)
                 this.role.rotation.y -= movementX * 0.002;
-            FirstPersonControls.bus.emit('modifyRole');
+            console.log(this.role)
+            //FirstPersonControls.bus.emit('modifyRole');
             this.pitchObject.rotation.x -= movementY * 0.002;
             // 这一步的目的是什么
             this.pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.pitchObject.rotation.x));
@@ -122,7 +122,7 @@ class FirstPersonControls {
             if (this.role)
                 this.role.translateX(-moveSpeed * direction.x * delta);
         }
-        FirstPersonControls.bus.emit('modifyRole');
+        //FirstPersonControls.bus.emit('modifyRole');
     }
 
     connect() {
