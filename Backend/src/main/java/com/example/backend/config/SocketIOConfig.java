@@ -2,6 +2,7 @@ package com.example.backend.config;
 
 import com.corundumstudio.socketio.SocketConfig;
 import com.corundumstudio.socketio.SocketIOServer;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -12,11 +13,11 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @ConfigurationProperties(prefix = "socketio")
+@Setter
 public class SocketIOConfig
 {
     private String host;
 
-    @Value("${socketio.port}")
     private Integer port;
 
     private int bossCount;

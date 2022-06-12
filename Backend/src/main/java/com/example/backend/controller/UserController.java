@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.annotation.BaseResponse;
+import com.example.backend.model.Room;
 import com.example.backend.model.User;
 import com.example.backend.repository.UserLogRepository;
 import com.example.backend.repository.UserRepository;
@@ -59,5 +60,10 @@ public class UserController {
     @GetMapping("Log")
     public List<UserLog> getAllLogs(@RequestParam("username") String username) {
         return userLogRepository.findAllByUsername(username);
+    }
+
+    @GetMapping("Join")
+    public Room join() {
+        return Room.getRoom();
     }
 }

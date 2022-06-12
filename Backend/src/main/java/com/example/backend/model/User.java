@@ -2,6 +2,7 @@ package com.example.backend.model;
 
 import lombok.Data;
 
+import javax.persistence.Column;
 import javax.persistence.*;
 import java.io.Serializable;
 

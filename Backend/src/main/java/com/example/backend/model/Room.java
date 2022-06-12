@@ -1,18 +1,30 @@
 package com.example.backend.model;
 
-import lombok.Data;
+import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Data
 public class Room {
-    private Pillar[] pillars;
-    private Player[] players;
+    public static final int COLUMN_NUMBER = 3;
+    public static int plateNumber = 3;
 
-    public Room() {
+    private List<Column> columns;
+    private Map<String, Player> players;
 
+    private static Room room;
+
+    private Room() {
+        this.columns = new ArrayList<>();
+        this.players = new ConcurrentHashMap<>();
     }
 
-    public Room(Pillar[] pillars, Player[] players) {
-        this.pillars = pillars;
-        this.players = players;
+    public static Room getRoom() {
+        if (room == null)
+            room = new Room();
+        return room;
     }
 }

@@ -1,11 +1,16 @@
 package com.example.backend.service;
 
+import com.alibaba.fastjson.JSONObject;
+import com.corundumstudio.socketio.AckRequest;
 import com.corundumstudio.socketio.SocketIOClient;
 import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.annotation.OnConnect;
 import com.corundumstudio.socketio.annotation.OnDisconnect;
 import com.corundumstudio.socketio.annotation.OnEvent;
+import com.example.backend.model.Column;
 import com.example.backend.model.Message;
+import com.example.backend.model.Player;
+import com.example.backend.model.Room;
 import com.example.backend.repository.UserLogRepository;
 import com.example.backend.utils.UserLog;
 import com.sun.nio.sctp.MessageInfo;
@@ -16,6 +21,8 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -25,6 +32,8 @@ public class SocketIOService {
 
     // 用来存已连接的客户端
     private static final Map<String, SocketIOClient> clientMap = new ConcurrentHashMap<>();
+
+    private final Room room = Room.getRoom();
 
     @Autowired
     private SocketIOServer socketIOServer;
@@ -42,7 +51,7 @@ public class SocketIOService {
     }
 
     /**
-     * Spring IoC容器在销毁SocketIOServiceImpl Bean之前关闭,避免重启项目服务端口占用问题
+     * Spring IoC容器在销毁SocketIOService Bean之前关闭,避免重启项目服务端口占用问题
      */
     @PreDestroy
     private void autoStop() throws Exception {
@@ -76,60 +85,91 @@ public class SocketIOService {
      * 玩家加入房间的事件处理器
      * */
     @OnEvent(value="OnJoin")
-    public void onJoin(SocketIOClient client) {
+    public void onJoin(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
         String username = client.getHandshakeData().getSingleUrlParam("username");
-        // Player player = playerList.get(username);
-        String x = client.getHandshakeData().getSingleUrlParam("x");
-        // player.setX(x);
-        String y = client.getHandshakeData().getSingleUrlParam("y");
-        // player.setY(y);
-        String z = client.getHandshakeData().getSingleUrlParam("z");
-        // player.setZ(z);
-        String rx = client.getHandshakeData().getSingleUrlParam("rx");
-        // player.setRx(rx);
-        String ry = client.getHandshakeData().getSingleUrlParam("ry");
-        // player.setRy(ry);
-        String rz = client.getHandshakeData().getSingleUrlParam("rz");
-        // player.setRz(rz);
-        // 转发被更新的玩家给其他玩家
-         clientMap.forEach((uname, socketIOClient) -> {
-             if (!uname.equals(username)) {
-                 // socketIOClient.sendEvent("OnPlayerJoin", player);
-             }
-         });
-        // 向数据库写入日志... insertLog(username, type, plate)
-        // insertLog(username, "join", null);
+        Player player = new Player();
+        player.setUsername(username);
+        setPlayerPosition(player, data);
+
+        // 添加到玩家列表
+        room.getPlayers().put(username, player);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("player", player);
+        // 转发新加入的玩家给其他玩家
+        sendToOthers("OnPlayerJoin", username, map);
+
+        // 向数据库写入日志
+        UserLog userLog = new UserLog(username, "join", LocalDateTime.now(), null);
+        userLogRepository.save(userLog);
     }
 
     /**
      * 玩家离开房间的事件处理器
      * */
     @OnEvent(value="OnLeave")
-    public void onLeave(SocketIOClient client) {
+    public void onLeave(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
+        String username = client.getHandshakeData().getSingleUrlParam("username");
+        Player player = room.getPlayers().get(username);
+        // 保存离开前的位置和朝向
+        setPlayerPosition(player, data);
 
+        Map<String, Object> map = new HashMap<>();
+        map.put("username", username);
+        // 转发离开的玩家名给其他玩家
+        sendToOthers("OnPlayerLeave", username, map);
+
+        // 向数据库写入日志
+        UserLog userLog = new UserLog(username, "leave", LocalDateTime.now(), null);
+        userLogRepository.save(userLog);
     }
 
     /**
      * 玩家更新位置的事件处理器
      * */
     @OnEvent(value="OnUpdate")
-    public void onUpdate(SocketIOClient client) {
+    public void onUpdate(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
+        String username = client.getHandshakeData().getSingleUrlParam("username");
+        Player player = room.getPlayers().get(username);
+        // 更新位置和朝向
+        setPlayerPosition(player, data);
 
+        Map<String, Object> map = new HashMap<>();
+        map.put("player", player);
+        // 转发被更新的玩家给其他玩家
+        sendToOthers("OnPlayerUpdate", username, map);
     }
 
     /**
      * 玩家拿起汉诺塔的事件处理器
      * */
     @OnEvent(value="OnPickUp")
-    public void onPickUp(SocketIOClient client) {
+    public void onPickUp(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
+        String username = client.getHandshakeData().getSingleUrlParam("username");
+        Player player = room.getPlayers().get(username);
 
+        Integer plate = (Integer) data.get("index");
+        player.setPlate(plate);
+
+        Integer columnIndex = (Integer) data.get("columnIndex");
+        Column column = room.getColumns().get(columnIndex);
+        // 更新柱子的plates
+        synchronized (room.getColumns().get(columnIndex)) {
+            column.getPlates().remove(0);
+        }
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("username", username);
+        map.put("index", plate);
+        // 转发被更新的玩家给其他玩家
+        sendToOthers("OnPlayerPickUp", username, map);
     }
 
     /**
      * 玩家放下汉诺塔的事件处理器
      * */
     @OnEvent(value="OnPutDown")
-    public void onPutDown(SocketIOClient client) {
+    public void onPutDown(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
 
     }
 
@@ -137,7 +177,30 @@ public class SocketIOService {
      * 玩家发送聊天消息的事件处理器
      * */
     @OnEvent(value="OnSendMessage")
-    public void onSendMessage(SocketIOClient client) {
+    public void onSendMessage(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
 
+    }
+
+    private void setPlayerPosition(Player player, JSONObject data) {
+        Double x = (Double) data.get("x");
+        Double y = (Double) data.get("y");
+        Double z = (Double) data.get("z");
+        Double rx = (Double) data.get("rx");
+        Double ry = (Double) data.get("ry");
+        Double rz = (Double) data.get("rz");
+        player.setX(x);
+        player.setY(y);
+        player.setZ(z);
+        player.setRx(rx);
+        player.setRy(ry);
+        player.setRz(rz);
+    }
+
+    private void sendToOthers(String event, String username, Map<String, Object> message) {
+        clientMap.forEach((uname, socketIOClient) -> {
+            if (!uname.equals(username)) {
+                 socketIOClient.sendEvent(event, message);
+            }
+        });
     }
 }
