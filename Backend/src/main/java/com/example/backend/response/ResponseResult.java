@@ -25,8 +25,14 @@ public class ResponseResult implements Serializable {
      */
     private Object data;
 
-    public ResponseResult(String message){
+    public ResponseResult(String message) {
         this.status = 200;
         this.message = message;
+    }
+
+    public static ResponseResult getSuccessResponse(String message, Object data) {
+        ResponseResult result = new ResponseResult(message);
+        result.data = data;
+        return result;
     }
 }

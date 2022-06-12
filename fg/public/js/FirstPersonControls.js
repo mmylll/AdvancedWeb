@@ -37,7 +37,6 @@ class FirstPersonControls {
     }
 
     onPointerlockChange() {
-        console.log(this.domElement);
         this.isLocked = document.pointerLockElement === this.domElement;
     }
 
@@ -53,7 +52,6 @@ class FirstPersonControls {
             this.yawObject.rotation.y -= movementX * 0.002;
             if (this.role)
                 this.role.rotation.y -= movementX * 0.002;
-            console.log(this.role)
             //FirstPersonControls.bus.emit('modifyRole');
             this.pitchObject.rotation.x -= movementY * 0.002;
             // 这一步的目的是什么

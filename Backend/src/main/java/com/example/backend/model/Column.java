@@ -9,7 +9,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Column {
-    public static final Double HEIGHT = 20.0;
+    public static final Double HEIGHT = 100.0;
 
     private List<Plate> plates = new ArrayList<>();
     private Double height = HEIGHT;

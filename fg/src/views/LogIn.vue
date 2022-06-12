@@ -53,11 +53,11 @@
                        v-model="registerForm.email" type="text"/>
                 <p class="email_p messageP" :style="{'color': colors[2]}">请填写邮箱！</p>
                 <input v-check="{num:3,that}" name="fullName" style="margin-top: 0px;margin-bottom: 0px"
-                       placeholder="用户名" v-model="registerForm.fullName" type="text"/>
+                       placeholder="用户名" v-model="registerForm.Username" type="text"/>
                 <p class="fullName_p messageP" :style="{'color': colors[3]}">请填写用户名！</p>
-                <input v-check="{num:4,that}" name="Username" style="margin-top: 0px;margin-bottom: 0px"
-                       placeholder="名字" v-model="registerForm.Username" type="text"/>
-                <p class="Username_p2 messageP" :style="{'color': colors[4]}">请填写名字！</p>
+                <!--                <input v-check="{num:4,that}" name="Username" style="margin-top: 0px;margin-bottom: 0px"-->
+                <!--                       placeholder="名字" v-model="registerForm.Username" type="text"/>-->
+                <!--                <p class="Username_p2 messageP" :style="{'color': colors[4]}">请填写名字！</p>-->
                 <input v-check="{num:5,that}" name="Password" style="margin-top: 0px;margin-bottom: 0px"
                        placeholder="密码" v-model="registerForm.Password" type="Password"/>
                 <p class="Password_p2 messageP" :style="{'color': colors[5]}">请填写密码！</p>
@@ -90,7 +90,6 @@ export default {
       },
       registerForm: {
         email: '',
-        fullName: '',
         Username: '',
         Password: ''
       },
@@ -123,13 +122,13 @@ export default {
       this.isLogIn = !this.isLogIn
     },
     checkLogin() {
-      if (this.loginForm.Password == '' || this.loginForm.Username == "") {
+      if (this.loginForm.Password === '' || this.loginForm.Username === "") {
         return false;
       }
       return true;
     },
     checkRegister() {
-      if (this.registerForm.Password == '' || this.registerForm.Username == "" || this.registerForm.email == '' || this.registerForm.fullName == '') {
+      if (this.registerForm.Password === '' || this.registerForm.Username === "" || this.registerForm.email === '') {
         return false;
       }
       return true;
@@ -145,6 +144,8 @@ export default {
                 ElMessage.success('登录成功')
                 this.$router.replace('/About')
                 this.$store.state.username = this.loginForm.Username
+                console.log(resp)
+                this.$store.commit('setToken', resp.data.data)
               } else {
                 ElMessage.error(resp.data.message)
               }

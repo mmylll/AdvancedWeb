@@ -29,7 +29,7 @@ export default {
           }
           if (!this.isShow && this.message != '') {
             // 发送消息
-            socket.emit('SendMessage', this.message);
+            socket.emit('OnSendMessage', this.message);
             this.message = '';
           }
         }
@@ -39,7 +39,7 @@ export default {
   mounted() {
     this.onKeyBoard()
     // 接收消息
-    socket.on('RecieveMessage', (message) => {
+    socket.on('OnPlayerSendMessage', (message) => {
       this.messages.push(message);
     })
   }

@@ -13,13 +13,13 @@ public class Room {
     public static int plateNumber = 3;
 
     private List<Column> columns;
-    private Map<String, Player> players;
+    private List<Player> players;
 
     private static Room room;
 
     private Room() {
         this.columns = new ArrayList<>();
-        this.players = new ConcurrentHashMap<>();
+        this.players = new ArrayList<>();
     }
 
     public static Room getRoom() {

@@ -8,10 +8,10 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import mitt from "mitt";
 
-axios.defaults.baseURL = "http://back:8080"
+axios.defaults.baseURL = "http://localhost:8080"
 axios.interceptors.request.use((config) => {
     if (store.state.token != null) {
-        config.headers.token = store.state.token
+        config.headers.TOKEN = store.state.token
     }
     return config
 }, error => {

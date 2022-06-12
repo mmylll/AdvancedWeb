@@ -23,7 +23,7 @@ import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader'
 import socket from "@/socket";
 import {getCurrentInstance} from "vue";
 
-let scene,role;
+let scene, role;
 export default {
   name: "Web3D",
   data() {
@@ -127,13 +127,15 @@ export default {
           plateMaterial = new THREE.MeshLambertMaterial({color: 0xffff00})
       for (let i = 0; i < this.columns.length; i++) {
         let column = this.columns[i];
-        geometry = new THREE.CylinderGeometry(5, 5, column.height, 32);
+        geometry = new THREE.CylinderGeometry(5, 5, 100.0, 32);
         cylinder = new THREE.Mesh(geometry, material);
         scene.add(cylinder)
         cylinder.name = 'column' + i
-        cylinder.position.set(-200 + 200 * i, 75, -50)
+        cylinder.position.set(100 * (i - 1), 0, -50)
+        let height = 0;
         for (let plate of column.plates) {
-          let plateGeometry = new THREE.CylinderGeometry(plate.radius, plate.radius, plate.height, 32);
+          height += 10.0;
+          let plateGeometry = new THREE.CylinderGeometry(plate.radius, plate.radius, height, 32);
           let plateMesh = new THREE.Mesh(plateGeometry, plateMaterial)
           scene.add(plateMesh)
           plateMesh.name = 'plate' + plate.index;
@@ -239,7 +241,7 @@ export default {
       if (event.keyCode === 81) {
         this.quitDialog = !this.quitDialog
       } else if (event.keyCode === 32) { // 当按下空格
-        if (!this.isPicked){ // 还没有人拿汉诺塔
+        if (!this.isPicked) { // 还没有人拿汉诺塔
           this.pickUp();
         }
       } else if (this.lastkey !== event.keyCode) {
@@ -248,11 +250,11 @@ export default {
       }
     },
     keyUp(event) {
-      if (event.keyCode === 32){
-        if (this.isPicked && this.player.plate > 0){
+      if (event.keyCode === 32) {
+        if (this.isPicked && this.player.plate > 0) {
           this.putDown();
         }
-      }else {
+      } else {
         this.lastkey = null;
         this.nextAction = this.nopeAction;
         this.fadeToAction('Standing', 0.2);
@@ -292,9 +294,10 @@ export default {
       })
     },
     getRoomInfo() {
-      this.axios.get('/RoomInfo').then((res) => {
-        this.columns = res.data.columns;
-        this.otherPlayer = res.data.players;
+      this.axios.get('/Join').then((res) => {
+        console.log(res)
+        this.columns = res.data.data.columns;
+        this.otherPlayer = res.data.data.players;
         this.addCylinder();
         this.renderOtherPlayer();
       })
@@ -310,7 +313,8 @@ export default {
       if (!socket.connected) {
         socket.connect();
       }
-      socket.on('PlayerJoin', (player) => {
+      socket.connect()
+      socket.on('OnPlayerJoin', (player) => {
         this.otherPlayer.push(player)
         this.renderAPlayer(player);
         this.$message({
@@ -318,7 +322,7 @@ export default {
           type: 'success'
         })
       })
-      socket.on('PlayerLeave', (username) => {
+      socket.on('OnPlayerLeave', (username) => {
         let player = this.getPlayerByName(username);
         if (player !== null) {
           this.otherPlayer.splice(this.otherPlayer.indexOf(player), 1);
@@ -330,7 +334,7 @@ export default {
           })
         }
       })
-      socket.on('PlayerUpdate', (player) => {
+      socket.on('OnPlayerUpdate', (player) => {
         let object = scene.getObjectByName(player.username);
         object.rotation.set(player.rx, player.ry, player.rz);
         object.position.set(player.x, player.y, player.z);
@@ -339,18 +343,17 @@ export default {
       })
 
 
-
       // 监听用户拿起汉诺塔
-      socket.on('PlayerPickUp', (username,index) => {
+      socket.on('OnPlayerPickUp', (username, index) => {
         this.isPicked = true; // 表明已经有人拿起了一块汉诺塔
-        this.pickedUpPlateObject = scene.getObjectByName("plate"+index);
+        this.pickedUpPlateObject = scene.getObjectByName("plate" + index);
         // 更新房间信息
 
-        for (let i = 0; i < this.columns.length; i++){
-          let plates =  this.columns[i].plates;
-          if (plates.length > 0 && plates[plates.length-1].index == index){
-             this.pickedUpPlate =  this.columns[i].plates.pop();
-             this.originalColumn = i;
+        for (let i = 0; i < this.columns.length; i++) {
+          let plates = this.columns[i].plates;
+          if (plates.length > 0 && plates[plates.length - 1].index == index) {
+            this.pickedUpPlate = this.columns[i].plates.pop();
+            this.originalColumn = i;
           }
         }
         //更新该玩家信息，表明该玩家持有该汉诺塔
@@ -358,15 +361,14 @@ export default {
         player.plate = this.pickedUpPlate;
         // 更新柱子，使得该编号的汉诺塔从柱子上消失
         scene.remove(this.pickedUpPlateObject);
-
       })
       // 监听用户放下汉诺塔
-      socket.on('PlayerPutDown', (username,columnIndex,index) => {
+      socket.on('OnPlayerPutDown', (username, columnIndex, index) => {
         // 更新玩家信息
         let player = this.getPlayerByName(username);
         player.plate = null; // 更新该玩家信息
         // 更新柱子上汉诺塔放下的情况
-        let column = scene.getObjectByName('column'+columnIndex);
+        let column = scene.getObjectByName('column' + columnIndex);
         let putPlateHeight = this.columns[columnIndex].plates.length * this.pickedUpPlate.height;
         this.columns[columnIndex].plates.push(this.pickedUpPlate);
         this.pickedUpPlateObject.position.set(column.position);  // 更改该块的位置
@@ -387,20 +389,21 @@ export default {
       }
     },
     join() {
-      socket.on('Join', this.player)
+      console.log(socket.connected)
+      socket.emit('OnJoin', this.player)
     },
 
     // 拿起汉诺塔事件
-    pickUp(){
-      if (this.player.plate == null){  // 该玩家还未拿起块
+    pickUp() {
+      if (this.player.plate == null) {  // 该玩家还未拿起块
         // 玩家的位置
-        let playerPosition = new THREE.Vector3(this.player.position.x,this.player.position.y,0);
+        let playerPosition = new THREE.Vector3(this.player.position.x, this.player.position.y, 0);
         let index = -1; // 要拿起的汉诺塔的编号
-        for (let i = 0; i < this.columns.length; i++){
-          let column = scene.getObjectByName('column'+i);  // 获得柱子的模型
-          let columnPosition = new THREE.Vector3(column.position.x,column.position.y,0);
+        for (let i = 0; i < this.columns.length; i++) {
+          let column = scene.getObjectByName('column' + i);  // 获得柱子的模型
+          let columnPosition = new THREE.Vector3(column.position.x, column.position.y, 0);
           if (playerPosition.distanceTo(columnPosition) < 10 &&
-                  this.columns[i].plates.length > 0){ // 角色距离该柱子足够近且该柱子上存在汉诺塔
+              this.columns[i].plates.length > 0) { // 角色距离该柱子足够近且该柱子上存在汉诺塔
             let plates = this.columns[i].plates;
             index = plates[plates.length - 1].index;
             this.isPicked = true;
@@ -408,36 +411,36 @@ export default {
           }
         }
         // 编号大于0，表示拿到了汉诺塔
-        if (index >= 0){
-          socket.emit('onPickUp',{username: this.player.username, index: index});
+        if (index >= 0) {
+          socket.emit('OnPickUp', {username: this.player.username, index: index});
         }
       }
     },
     // 放下汉诺塔事件
-    putDown(){
-      if (this.player.plate != null){ // 该角色有一个汉诺塔
-        let rolePosition = new THREE.Vector3(this.role.position.x,this.role.position.y,0);
+    putDown() {
+      if (this.player.plate != null) { // 该角色有一个汉诺塔
+        let rolePosition = new THREE.Vector3(this.role.position.x, this.role.position.y, 0);
         let index = this.player.plate.index; // 放下的汉诺塔的编号
         let isOk = false; // 判断是否能放下该块
         let columnIndex = -1;
-        for (let i = 0; i < this.columns.length; i++){
-          let column = scene.getObjectByName('column'+i);  // 获得柱子的对象
-          let columnPosition = new THREE.Vector3(column.position.x,column.position.y,0);
-          if (rolePosition.distanceTo(columnPosition) < 10 ){ // 角色距离该柱子足够近
+        for (let i = 0; i < this.columns.length; i++) {
+          let column = scene.getObjectByName('column' + i);  // 获得柱子的对象
+          let columnPosition = new THREE.Vector3(column.position.x, column.position.y, 0);
+          if (rolePosition.distanceTo(columnPosition) < 10) { // 角色距离该柱子足够近
             let plates = this.columns[i].plates;
-            if (plates.length == 0){
+            if (plates.length == 0) {
               isOk = true;
-            }else if(plates[plates.length -1].radius > this.role.plate.radius){
+            } else if (plates[plates.length - 1].radius > this.role.plate.radius) {
               isOk = true;
             }
             columnIndex = i;
             break;
           }
         }
-        if (isOk){
-          socket.emit('onPutDown',{username: this.player.username, columnIndex: columnIndex,index: index});
+        if (isOk) {
+          socket.emit('OnPutDown', {username: this.player.username, columnIndex: columnIndex, index: index});
         } else {  // 放回原位
-          socket.emit('onPutDown',{username: this.player.username, columnIndex: this.originalColumn,index: index});
+          socket.emit('OnPutDown', {username: this.player.username, columnIndex: this.originalColumn, index: index});
         }
       }
 
@@ -454,7 +457,7 @@ export default {
     window.addEventListener('keyup', this.keyUp, false)
     // this.bus.on('modifyRole', () => {
     //   this.updatePositionAndRotation()
-    //   socket.emit('Update', this.player)
+    //   socket.emit('OnUpdate', this.player)
     // })
     this.animate()
   }

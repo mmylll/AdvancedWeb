@@ -89,8 +89,9 @@ public class SocketIOService {
         setPlayerPosition(player, data);
 
         // 添加到玩家列表
-        room.getPlayers().put(username, player);
-
+        synchronized (room){
+            room.getPlayers().add(player);
+        }
         Map<String, Object> map = new HashMap<>();
         map.put("player", player);
         // 转发新加入的玩家给其他玩家
@@ -107,7 +108,17 @@ public class SocketIOService {
     @OnEvent(value="OnLeave")
     public void onLeave(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
         String username = client.getHandshakeData().getSingleUrlParam("username");
-        Player player = room.getPlayers().get(username);
+        Player player = null;
+        synchronized (room){
+            for (Player p : room.getPlayers()) {
+                if (p.getUsername().equals(username))
+                    player = p;
+            }
+        }
+        if (player == null) {
+            log.info("player is not found in player list");
+            return;
+        }
         // 保存离开前的位置和朝向
         setPlayerPosition(player, data);
 
@@ -127,7 +138,17 @@ public class SocketIOService {
     @OnEvent(value="OnUpdate")
     public void onUpdate(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
         String username = client.getHandshakeData().getSingleUrlParam("username");
-        Player player = room.getPlayers().get(username);
+        Player player = null;
+        synchronized (room){
+            for (Player p : room.getPlayers()) {
+                if (p.getUsername().equals(username))
+                    player = p;
+            }
+        }
+        if (player == null) {
+            log.info("player is not found in player list");
+            return;
+        }
         // 更新位置和朝向
         setPlayerPosition(player, data);
 
@@ -143,7 +164,17 @@ public class SocketIOService {
     @OnEvent(value="OnPickUp")
     public void onPickUp(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
         String username = client.getHandshakeData().getSingleUrlParam("username");
-        Player player = room.getPlayers().get(username);
+        Player player = null;
+        synchronized (room){
+            for (Player p : room.getPlayers()) {
+                if (p.getUsername().equals(username))
+                    player = p;
+            }
+        }
+        if (player == null) {
+            log.info("player is not found in player list");
+            return;
+        }
 
         Integer plate = (Integer) data.get("index");
         player.setPlate(plate);
@@ -171,7 +202,17 @@ public class SocketIOService {
     @OnEvent(value="OnPutDown")
     public void onPutDown(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
         String username = client.getHandshakeData().getSingleUrlParam("username");
-        Player player = room.getPlayers().get(username);
+        Player player = null;
+        synchronized (room){
+            for (Player p : room.getPlayers()) {
+                if (p.getUsername().equals(username))
+                    player = p;
+            }
+        }
+        if (player == null) {
+            log.info("player is not found in player list");
+            return;
+        }
 
         Integer plateIndex = (Integer) data.get("index");
         Plate plate = new Plate(plateIndex, Plate.BASE_RADIUS + plateIndex * Plate.RADIUS_STEP, Plate.HEIGHT);
@@ -226,7 +267,7 @@ public class SocketIOService {
     private void sendToOthers(String event, String username, Map<String, Object> message) {
         clientMap.forEach((uname, socketIOClient) -> {
             if (!uname.equals(username)) {
-                 socketIOClient.sendEvent(event, message);
+                socketIOClient.sendEvent(event, message);
             }
         });
     }

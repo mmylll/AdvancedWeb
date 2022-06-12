@@ -35,25 +35,25 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("FindAllUsers")
-    public List<User> getAllUsers(){
+    public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
     @PostMapping("Login")
-    public ResponseResult login(HttpServletResponse response, @RequestParam(value = "username") String username, @RequestParam(value = "password") String password){
+    public ResponseResult login(HttpServletResponse response, @RequestParam(value = "username") String username, @RequestParam(value = "password") String password) {
 //    public ResponseResult login(HttpServletResponse response,@RequestBody JSONObject jsonParam) throws JSONException {
-        response.setHeader(JWTUtils.TOKEN, userService.login(username, password));
-        return new ResponseResult("登录成功");
+        //response.setHeader(JWTUtils.TOKEN, userService.login(username, password));
+        return ResponseResult.getSuccessResponse("登录成功", userService.login(username, password));
     }
 
     @PostMapping("Register")
-    public ResponseResult register(HttpServletResponse response, @RequestParam(value = "username") String username, @RequestParam(value = "password") String password, @RequestParam(value = "email") String email){
-        response.setHeader(JWTUtils.TOKEN,userService.register(username,password,email));
+    public ResponseResult register(HttpServletResponse response, @RequestParam(value = "username") String username, @RequestParam(value = "password") String password, @RequestParam(value = "email") String email) {
+        response.setHeader(JWTUtils.TOKEN, userService.register(username, password, email));
         return new ResponseResult("注册成功");
     }
 
     @GetMapping("Info")
-    public User Info(@RequestParam("username") String username){
+    public User Info(@RequestParam("username") String username) {
         return userService.info(username);
     }
 
@@ -68,7 +68,7 @@ public class UserController {
     }
 
     @PostMapping("Set")
-    public Room set(@RequestParam(value = "number") String number){
+    public Room set(@RequestParam(value = "number") String number) {
         return userService.set(Integer.parseInt(number));
     }
 }

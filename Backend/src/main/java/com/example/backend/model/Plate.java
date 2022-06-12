@@ -11,9 +11,9 @@ import org.springframework.stereotype.Component;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Plate {
-    public static final Double BASE_RADIUS = 3.0;
-    public static final Double RADIUS_STEP = 1.0;
-    public static final Double HEIGHT = 1.0;
+    public static final Double BASE_RADIUS = 6.0;
+    public static final Double RADIUS_STEP = 2.5;
+    public static final Double HEIGHT = 10.0;
 
     private int index;
     private Double radius;
