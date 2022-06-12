@@ -15,7 +15,9 @@
     <div class="info">
       <h2>个人信息展示</h2>
       <div class="head">
-        <div class="img"></div>
+        <div class="img" id="scene">
+        </div>
+
         <div class="intro">
           <h3>自我介绍：</h3>
           <span>....</span>
@@ -25,7 +27,7 @@
         <ul>
           <li>
             <div class="title">用户名：</div>
-            <input placeholder="AAAAAA" disabled>
+            <input v-model="username" disabled>
           </li>
           <li>
             <div class="title">邮箱：</div>
@@ -36,16 +38,39 @@
       <div class="game">
         <h2 style="text-align: left">汉诺塔技巧：</h2>
       </div>
+      <div class="log">
+        <h2>操作记录：</h2>
+        <p v-for="(log, index) in logs" :id="index">操作类型： {{log.type}}   操作记录： {{log.date}}</p>
+      </div>
     </div>
   </div>
 </template>
 <script>
+import Base3d from "../../public/js/showRobot";
 export default {
   name: 'About',
   data() {
-    return {}
+    return {
+      username: this.$store.state.username,
+      logs: [],
+      robot3D: {}
+    }
   },
-  methods: {}
+  methods: {
+    getLog(){
+      this.axios.get('/Log',{
+        param:{
+          'username': this.username
+        }
+      }).then((res) => {
+        this.logs = res.data.log;
+      })
+    }
+  },
+  mounted() {
+    this.getLog(),
+    this.robot3D = new Base3d('#scene');
+  }
 }
 </script>
 <style>
@@ -110,13 +135,11 @@ span:hover {
 .img {
   display: block;
   border: #2c3e50 solid 1px;
-  width: 150px;
-  height: 150px;
-  padding: 2rem;
+  width: 13rem;
+  height: 13rem;
   float: left;
   margin: 3rem 3rem 3rem 7rem;
-  background-image: url("../assets/logo.png");
-  background-repeat: no-repeat;
+
 }
 
 .intro {

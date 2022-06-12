@@ -10,13 +10,13 @@
 
 <script>
 import socket from "@/socket";
-
 export default {
   name: "Chat",
   data() {
     return {
       messages: [],
-      isShow: false
+      isShow: false,
+      message: ''
     }
   },
   methods: {
@@ -27,9 +27,10 @@ export default {
           if (this.isShow) {
             this.$refs.messageInput.focus()
           }
-          if (!this.isShow) {
+          if (!this.isShow && this.message != '') {
             // 发送消息
-            socket.emit('SendMessage', {});
+            socket.emit('SendMessage', this.message);
+            this.message = '';
           }
         }
       }
@@ -39,7 +40,7 @@ export default {
     this.onKeyBoard()
     // 接收消息
     socket.on('RecieveMessage', (message) => {
-      
+      this.messages.push(message);
     })
   }
 }
