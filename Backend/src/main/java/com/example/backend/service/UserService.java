@@ -1,12 +1,19 @@
 package com.example.backend.service;
 
 import com.example.backend.exception.BaseException;
+import com.example.backend.model.Column;
+import com.example.backend.model.Room;
 import com.example.backend.model.User;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.response.ResponseCode;
+import com.example.backend.utils.HanoiUtils;
 import com.example.backend.utils.JWTUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 @Service
 public class UserService {
@@ -48,5 +55,15 @@ public class UserService {
             throw new BaseException(ResponseCode.USER_NOT_EXIST);
         }
         return user;
+    }
+
+    public Room set(int plateNumber){
+        if(Room.getRoom().getPlayers().isEmpty()){
+            Room.plateNumber = plateNumber;
+            Room.getRoom().getColumns().clear();
+            return HanoiUtils.init();
+        }else{
+            throw new BaseException(ResponseCode.PLATE_NUMBER_ERROR);
+        }
     }
 }

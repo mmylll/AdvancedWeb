@@ -66,4 +66,9 @@ public class UserController {
     public Room join() {
         return Room.getRoom();
     }
+
+    @PostMapping("Set")
+    public Room set(@RequestParam(value = "number") String number){
+        return userService.set(Integer.parseInt(number));
+    }
 }

@@ -31,6 +31,8 @@ public enum ResponseCode {
 
     USER_NOT_EXIST(416,"用户不存在"),
 
+    PLATE_NUMBER_ERROR(417,"无法设置汉诺塔数量"),
+
     ;
     /**
      * 状态码

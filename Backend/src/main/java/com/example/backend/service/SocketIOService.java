@@ -7,10 +7,7 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.annotation.OnConnect;
 import com.corundumstudio.socketio.annotation.OnDisconnect;
 import com.corundumstudio.socketio.annotation.OnEvent;
-import com.example.backend.model.Column;
-import com.example.backend.model.Message;
-import com.example.backend.model.Player;
-import com.example.backend.model.Room;
+import com.example.backend.model.*;
 import com.example.backend.repository.UserLogRepository;
 import com.example.backend.utils.UserLog;
 import com.sun.nio.sctp.MessageInfo;
@@ -163,6 +160,9 @@ public class SocketIOService {
         map.put("index", plate);
         // 转发被更新的玩家给其他玩家
         sendToOthers("OnPlayerPickUp", username, map);
+        // 向数据库写入日志
+        UserLog userLog = new UserLog(username, "pickUp",LocalDateTime.now(), plate);
+        userLogRepository.save(userLog);
     }
 
     /**
@@ -170,7 +170,29 @@ public class SocketIOService {
      * */
     @OnEvent(value="OnPutDown")
     public void onPutDown(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
+        String username = client.getHandshakeData().getSingleUrlParam("username");
+        Player player = room.getPlayers().get(username);
 
+        Integer plateIndex = (Integer) data.get("index");
+        Plate plate = new Plate(plateIndex, Plate.BASE_RADIUS + plateIndex * Plate.RADIUS_STEP, Plate.HEIGHT);
+        player.setPlate(null);
+
+        Integer columnIndex = (Integer) data.get("columnIndex");
+        Column column = room.getColumns().get(columnIndex);
+        // 更新柱子的plates
+        synchronized (room.getColumns().get(columnIndex)) {
+            column.getPlates().add(0,plate);
+        }
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("username", username);
+        map.put("index", plateIndex);
+        map.put("columnIndex",columnIndex);
+        // 转发给其他玩家
+        sendToOthers("OnPlayerPutDown", username, map);
+        // 向数据库写入日志
+        UserLog userLog = new UserLog(username, "putDown",LocalDateTime.now(), null);
+        userLogRepository.save(userLog);
     }
 
     /**
@@ -178,7 +200,12 @@ public class SocketIOService {
      * */
     @OnEvent(value="OnSendMessage")
     public void onSendMessage(SocketIOClient client, AckRequest ackRequest, JSONObject data) {
-
+        String username = client.getHandshakeData().getSingleUrlParam("username");
+        String message = client.getHandshakeData().getSingleUrlParam("message");
+        Map<String, Object> map = new HashMap<>();
+        map.put("username", username);
+        map.put("message", message);
+        sendToOthers("OnPlayerSendMessage",username,map);
     }
 
     private void setPlayerPosition(Player player, JSONObject data) {
