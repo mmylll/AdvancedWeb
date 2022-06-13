@@ -13,7 +13,7 @@
     "element-plus": "^2.1.10",
     "mitt": "^3.0.0",
     "qs": "^6.10.3",
-    "socket.io-client": "^4.5.1",
+    "socket.io-client": "^2.2.0",
     "three": "^0.139.2",
     "vue": "^3.0.0",
     "vue-axios": "^3.4.1",

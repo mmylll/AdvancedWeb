@@ -20,10 +20,11 @@ import * as THREE from 'three'
 import FirstPersonControls from "../../public/js/FirstPersonControls";
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader'
 import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader'
-import socket from "@/socket";
+//import socket from "@/socket";
 import {getCurrentInstance} from "vue";
+import io from "socket.io-client";
 
-let scene, role;
+let scene, role, socket;
 export default {
   name: "Web3D",
   data() {
@@ -46,9 +47,9 @@ export default {
 
       // 角色
       player: {
-        rx: 0,
-        rz: 0,
-        ry: 0,
+        rx: 0.0,
+        rz: 0.0,
+        ry: 0.0,
         plate: null
       },
       //role: null,
@@ -221,6 +222,8 @@ export default {
         this.role.scale.set(7, 7, 7)// 设置模型大小
         this.role.rotation.y = Math.PI
         this.mixer = new THREE.AnimationMixer(this.role);
+        this.animations.walking = gltf.animations[10]
+        this.animations.standing = gltf.animations[8]
         this.stateList.Walking = this.mixer.clipAction(gltf.animations[10]);
         this.stateList.Standing = this.mixer.clipAction(gltf.animations[8]);
         // 设置下面两项主要是站着的时候，别抖了
@@ -285,6 +288,7 @@ export default {
     renderAPlayer(player) {
       this.loader.load('3D/RobotExpressive.glb', gltf => {
         let role = gltf.scene;
+        role.scale.set(7, 7, 7)// 设置模型大小
         role.rotation.set(player.rx, player.ry, player.rz);
         role.position.set(player.x, player.y, player.z)
         scene.add(role);
@@ -310,15 +314,33 @@ export default {
       return null
     },
     socketInit() {
-      if (!socket.connected) {
-        socket.connect();
-      }
-      socket.connect()
+      //io.set('transports', ['websocket', 'xhr-polling', 'jsonp-polling', 'htmlfile', 'flashsocket']);
+      //io.set('origins', '*:*');
+      // socket = io.connect()
+      socket = io.connect('ws://localhost:10246/', {
+        //withCredentials: false,
+        //query: {username: 'administer'}
+        //extraHeaders: {
+        //   'Sec-WebSocket-Version': 13,
+        //   'Connection': 'Upgrade',
+        //   'Upgrade': 'websocket',
+        //   'Sec-WebSocket-Key': '<calculated at runtime>',
+        //   'Host': '<calculated at runtime>'
+        // }
+      })
+      ;
+      socket.on('connect', () => {
+        console.log(socket.connected)
+        this.join();
+      })
+      //socket = io('ws://127.0.0.1:10246', {withCredentials: false, query: {username: 'administer'}})
+
       socket.on('OnPlayerJoin', (player) => {
-        this.otherPlayer.push(player)
-        this.renderAPlayer(player);
+        this.otherPlayer.push(player.player)
+        console.log(player)
+        this.renderAPlayer(player.player);
         this.$message({
-          message: player.username + "加入了游戏",
+          message: player.player.username + "加入了游戏",
           type: 'success'
         })
       })
@@ -389,7 +411,8 @@ export default {
       }
     },
     join() {
-      console.log(socket.connected)
+      //console.log(socket.connected)
+      console.log(this.player)
       socket.emit('OnJoin', this.player)
     },
 
@@ -452,7 +475,6 @@ export default {
     this.getRoomInfo();
     this.createRole()
     this.socketInit()
-    this.join();
     window.addEventListener('keydown', this.keyPressed, false);
     window.addEventListener('keyup', this.keyUp, false)
     // this.bus.on('modifyRole', () => {

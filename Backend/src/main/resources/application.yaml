@@ -16,7 +16,7 @@ jwt:
   expireTime: 60 #token有效时间 (分钟)
 
 socketio:
-  host: localhost	#监听的ip
+  host: 127.0.0.1	#监听的ip
   port: 10246		#监听端口
   # socket连接数大小（如只监听一个端口boss线程组为1即可）
   bossCount: 1
