@@ -88,10 +88,10 @@ export default {
       },
       bus: getCurrentInstance().appContext.config.globalProperties.$bus,
 
-      pickedUpPlate: null, // 被拿起的块的对象
       pickedUpPlateObject: null, // 被拿起块的模型对象
       isPicked: false,
-      originColumn: -1 // 被拿起的块的原来的柱子编号
+      originColumn: -1, // 被拿起的块的原来的柱子编号
+      copyColumns: []
     }
   },
   methods: {
@@ -100,6 +100,7 @@ export default {
       this.render = new THREE.WebGLRenderer({antialias: true})
       this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
       this.camera.position.set(0, 100, 0)
+      this.camera.rotation.set(0,Math.PI,0);
 
       this.render.setClearColor(0xffffff, 1.0)
       this.render.setSize(window.innerWidth, window.innerHeight)
@@ -141,12 +142,13 @@ export default {
         cylinder.position.set(100 * (i - 1), 0, -50)
         let height = 0;
         for (let plate of column.plates) {
-          height += 10.0;
-          let plateGeometry = new THREE.CylinderGeometry(plate.radius, plate.radius, height, 32);
-          let plateMesh = new THREE.Mesh(plateGeometry, plateMaterial)
+          let plateGeometry = new THREE.CylinderGeometry(plate.radius, plate.radius, plate.height, 32);
+          let plateMesh = new THREE.Mesh(plateGeometry, plateMaterial);
           scene.add(plateMesh)
           plateMesh.name = 'plate' + plate.index;
           plateMesh.position.set(...cylinder.position);
+          plateMesh.position.y = height;
+          height += 10.0;
         }
       }
     },
@@ -261,7 +263,7 @@ export default {
     },
     keyUp(event) {
       if (event.keyCode === 32) {
-        if (this.isPicked && this.player.plate > 0) {
+        if (this.isPicked && this.player.plate !== null) {
           this.putDown();
         }
       } else if (event.keyCode !== 81) {
@@ -306,17 +308,16 @@ export default {
     },
     getRoomInfo() {
       this.axios.get('/Join').then((res) => {
-        console.log(res)
-        this.columns = res.data.data.columns;
-        console.log('other players:')
+        this.cop
+        this.columns = this.deepClone(res.data.data.columns);
+        //this.columns = res.data.data.columns;
+        console.log('getroominfo:  columns')
+        console.log(this.columns)
         for (let i in res.data.data.players) {
-          console.log(i)
           this.otherPlayer.push(res.data.data.players[i]);
-          console.log(res.data.data.players[i])
         }
         this.addCylinder();
         this.renderOtherPlayer();
-
       })
     },
     getPlayerByName(username) {
@@ -388,40 +389,57 @@ export default {
 
 
       // 监听用户拿起汉诺塔
-      socket.on('OnPlayerPickUp', (username, index) => {
+      socket.on('OnPlayerPickUp', (res) => {
+        console.log("onplayerPickuo")
+        console.log(this.columns);
+        let username = res.username;
+        let index = res.index;
         this.isPicked = true; // 表明已经有人拿起了一块汉诺塔
         this.pickedUpPlateObject = scene.getObjectByName("plate" + index);
         // 更新房间信息
-
-        for (let i = 0; i < this.columns.length; i++) {
-          let plates = this.columns[i].plates;
-          if (plates.length > 0 && plates[plates.length - 1].index == index) {
-            this.pickedUpPlate = this.columns[i].plates.pop();
-            this.originalColumn = i;
-          }
-        }
+        this.originalColumn = res.columnIndex;
         //更新该玩家信息，表明该玩家持有该汉诺塔
         let player = this.getPlayerByName(username);
-        player.plate = this.pickedUpPlate;
+
+
+        console.log(this.columns[res.columnIndex].plates)
+        player.plate = this.columns[res.columnIndex].plates.pop();
+        console.log(this.columns[res.columnIndex].plates)
+
+        console.log("onplayerpickup player:")
+        console.log(player)
+        console.log()
         // 更新柱子，使得该编号的汉诺塔从柱子上消失
-        scene.remove(this.pickedUpPlateObject);
+        this.pickedUpPlateObject.visible = false;
       })
       // 监听用户放下汉诺塔
-      socket.on('OnPlayerPutDown', (username, columnIndex, index) => {
+      socket.on('OnPlayerPutDown', (res) => {
+        console.log("onPlayerPutDown")
+        console.log(this.columns)
+        let username = res.username;
+        let columnIndex = res.columnIndex;
         // 更新玩家信息
         let player = this.getPlayerByName(username);
-        player.plate = null; // 更新该玩家信息
+        console.log("player:")
+        console.log(player)
+        let plate = player.plate;
+
+        console.log("nan:")
+        console.log(this.columns[columnIndex].plates)
+        console.log(plate)
         // 更新柱子上汉诺塔放下的情况
         let column = scene.getObjectByName('column' + columnIndex);
-        let putPlateHeight = this.columns[columnIndex].plates.length * this.pickedUpPlate.height;
-        this.columns[columnIndex].plates.push(this.pickedUpPlate);
-        this.pickedUpPlateObject.position.set(column.position);  // 更改该块的位置
-        this.pickedUpPlateObject.position.y += putPlateHeight;  // 更新块的高度
-        scene.add(this.pickedUpPlateObject);
-        this.pickedUpPlateObject = null;
-        this.pickedUpPlate = null;
+        this.pickedUpPlateObject.position.set(...column.position);  // 更改该块的位置
+        this.pickedUpPlateObject.position.y = this.columns[columnIndex].plates.length * 10;  // 更新块的高度
+        this.columns[columnIndex].plates.push(plate);
+        this.pickedUpPlateObject.visible = true;
+        //this.pickedUpPlateObject = null;
         this.isPicked = false;
         this.originalColumn = -1;
+        console.log("putdown -----")
+        console.log(this.pickedUpPlateObject)
+        console.log(this.columns)
+        player.plate = null; // 更新该玩家信息
       })
     },
     updatePositionAndRotation() {
@@ -442,54 +460,106 @@ export default {
     pickUp() {
       if (this.player.plate == null) {  // 该玩家还未拿起块
         // 玩家的位置
-        let playerPosition = new THREE.Vector3(this.player.position.x, this.player.position.y, 0);
+        console.log("player:")
+        console.log(this.player)
+        let playerPosition = new THREE.Vector3(this.player.x, this.player.y, 0);
         let index = -1; // 要拿起的汉诺塔的编号
+        let columnIndex;
         for (let i = 0; i < this.columns.length; i++) {
           let column = scene.getObjectByName('column' + i);  // 获得柱子的模型
           let columnPosition = new THREE.Vector3(column.position.x, column.position.y, 0);
-          if (playerPosition.distanceTo(columnPosition) < 10 &&
-              this.columns[i].plates.length > 0) { // 角色距离该柱子足够近且该柱子上存在汉诺塔
+          if (playerPosition.distanceTo(columnPosition) < 25 &&
+                  this.columns[i].plates.length > 0) { // 角色距离该柱子足够近且该柱子上存在汉诺塔
             let plates = this.columns[i].plates;
             index = plates[plates.length - 1].index;
+            columnIndex = i;
             this.isPicked = true;
             break;
           }
         }
         // 编号大于0，表示拿到了汉诺塔
         if (index >= 0) {
-          socket.emit('OnPickUp', {username: this.player.username, index: index});
+          this.isPicked = true;
+          this.player.plate = this.columns[columnIndex].plates.pop();
+          this.originalColumn = columnIndex;
+          this.pickedUpPlateObject = scene.getObjectByName(('plate'+index));
+
+          this.pickedUpPlateObject.visible = false; // 隐藏该模型
+
+          socket.emit('OnPickUp', {username: this.player.username, columnIndex: columnIndex, index: index});
         }
       }
     },
     // 放下汉诺塔事件
     putDown() {
       if (this.player.plate != null) { // 该角色有一个汉诺塔
-        let rolePosition = new THREE.Vector3(this.role.position.x, this.role.position.y, 0);
+        let rolePosition = new THREE.Vector3(this.player.x, this.player.y, 0);
+        console.log("enter putdown:")
         let index = this.player.plate.index; // 放下的汉诺塔的编号
-        let isOk = false; // 判断是否能放下该块
-        let columnIndex = -1;
+        let columnIndex = this.originalColumn;
         for (let i = 0; i < this.columns.length; i++) {
           let column = scene.getObjectByName('column' + i);  // 获得柱子的对象
           let columnPosition = new THREE.Vector3(column.position.x, column.position.y, 0);
-          if (rolePosition.distanceTo(columnPosition) < 10) { // 角色距离该柱子足够近
+          if (rolePosition.distanceTo(columnPosition) < 25) { // 角色距离该柱子足够近
             let plates = this.columns[i].plates;
-            if (plates.length == 0) {
-              isOk = true;
-            } else if (plates[plates.length - 1].radius > this.role.plate.radius) {
-              isOk = true;
+            if (plates.length == 0 || plates[plates.length - 1].radius > this.player.plate.radius) {
+              columnIndex = i;
             }
-            columnIndex = i;
             break;
           }
         }
-        if (isOk) {
-          socket.emit('OnPutDown', {username: this.player.username, columnIndex: columnIndex, index: index});
-        } else {  // 放回原位
-          socket.emit('OnPutDown', {username: this.player.username, columnIndex: this.originalColumn, index: index});
-        }
-      }
+        socket.emit('OnPutDown', {username: this.player.username, columnIndex: columnIndex, index: index});
 
+        console.log("username: "+this.player.username+ "columnIndex: "+columnIndex+"index: "+index)
+        // 更新玩家信息
+        let plate = this.player.plate;
+        console.log("player.plate:")
+        console.log(plate)
+        console.log(this.pickedUpPlateObject)
+        this.player.plate = null; // 更新该玩家信息
+        // 更新柱子上汉诺塔放下的情况
+        let column = scene.getObjectByName('column' + columnIndex);
+        this.pickedUpPlateObject.position.set(...column.position);  // 更改该块的位置
+        this.pickedUpPlateObject.position.y = this.columns[columnIndex].plates.length * plate.height;  // 更新块的高度
+        this.columns[columnIndex].plates.push(plate);
+        this.pickedUpPlateObject.visible = true;
+        this.originalColumn = -1;
+        this.isPicked = false;
+      }
+    },
+    deepClone(target) {
+      // 定义一个变量
+      let result;
+      // 如果当前需要深拷贝的是一个对象的话
+      if (typeof target === 'object') {
+        // 如果是一个数组的话
+        if (Array.isArray(target)) {
+          result = []; // 将result赋值为一个数组，并且执行遍历
+          for (let i in target) {
+            // 递归克隆数组中的每一项
+            result.push(this.deepClone(target[i]))
+          }
+          // 判断如果当前的值是null的话；直接赋值为null
+        } else if(target===null) {
+          result = null;
+          // 判断如果当前的值是一个RegExp对象的话，直接赋值
+        } else if(target.constructor===RegExp){
+          result = target;
+        }else {
+          // 否则是普通对象，直接for in循环，递归赋值对象的所有值
+          result = {};
+          for (let i in target) {
+            result[i] = this.deepClone(target[i]);
+          }
+        }
+        // 如果不是对象的话，就是基本数据类型，那么直接赋值
+      } else {
+        result = target;
+      }
+      // 返回最终结果
+      return result;
     }
+
   },
   mounted() {
     FirstPersonControls.bus = this.bus;

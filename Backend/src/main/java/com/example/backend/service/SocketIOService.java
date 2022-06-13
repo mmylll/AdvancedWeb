@@ -47,6 +47,7 @@ public class SocketIOService {
         socketIOServer.start();
 
         socketIOServer.addConnectListener(client -> {
+            System.out.println("-------------------连接");
             UUID uuid = client.getSessionId();
             if (uuid != null) {
                 clientMap.put(uuid, client);
@@ -136,6 +137,8 @@ public class SocketIOService {
         });
 
         socketIOServer.addEventListener("OnPickUp", JSONObject.class, (client, data, ackRequest) -> {
+            System.out.println("--------------------------onpickup");
+
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
             Player player = room.getPlayers().get(uuid);
@@ -157,6 +160,7 @@ public class SocketIOService {
             Map<String, Object> map = new HashMap<>();
             map.put("username", username);
             map.put("index", plate);
+            map.put("columnIndex",columnIndex);
             // 转发被更新的玩家给其他玩家
             sendToOthers("OnPlayerPickUp", uuid, map);
             // 向数据库写入日志
@@ -165,6 +169,9 @@ public class SocketIOService {
         });
 
         socketIOServer.addEventListener("OnPutDown", JSONObject.class, (client, data, ackRequest) -> {
+            System.out.println("--------------------------onputdown");
+
+
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
             Player player = room.getPlayers().get(uuid);
