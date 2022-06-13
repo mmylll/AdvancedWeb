@@ -50,12 +50,15 @@ class FirstPersonControls {
             let movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
 
             this.yawObject.rotation.y -= movementX * 0.002;
-            if (this.role)
-                this.role.rotation.y -= movementX * 0.002;
-            //FirstPersonControls.bus.emit('modifyRole');
+
+
             this.pitchObject.rotation.x -= movementY * 0.002;
             // 这一步的目的是什么
             this.pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.pitchObject.rotation.x));
+            if (this.role) {
+                this.role.rotation.y -= movementX * 0.002;
+                FirstPersonControls.bus.emit('modifyRole');
+            }
         }
     }
 
@@ -120,7 +123,7 @@ class FirstPersonControls {
             if (this.role)
                 this.role.translateX(-moveSpeed * direction.x * delta);
         }
-        //FirstPersonControls.bus.emit('modifyRole');
+        FirstPersonControls.bus.emit('modifyRole');
     }
 
     connect() {

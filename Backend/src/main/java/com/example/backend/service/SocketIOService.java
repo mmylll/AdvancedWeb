@@ -433,18 +433,18 @@ public class SocketIOService {
     }
 
     private void setPlayerPosition(Player player, JSONObject data) {
-        Double x = (Integer) data.get("x") * 1.0;
-        Double y = (Integer) data.get("y") * 1.0;
-        Double z = (Integer) data.get("z") * 1.0;
-        Double rx = (Integer) data.get("rx") * 1.0;
-        Double ry = (Double) data.get("ry") * 1.0;
-        Double rz = (Integer) data.get("rz") * 1.0;
-        player.setX(x);
-        player.setY(y);
-        player.setZ(z);
-        player.setRx(rx);
-        player.setRy(ry);
-        player.setRz(rz);
+//        Double x = ((Number) data.get("x")).doubleValue();
+//        Double y = (Integer) data.get("y") * 1.0;
+//        Double z = ((Number) data.get("z")).doubleValue();
+//        Double rx = (Integer) data.get("rx") * 1.0;
+//        Double ry = ((Number) data.get("ry")).doubleValue();
+//        Double rz = (Integer) data.get("rz") * 1.0;
+        player.setX((Number) data.get("x"));
+        player.setY((Number) data.get("y"));
+        player.setZ((Number) data.get("z"));
+        player.setRx((Number) data.get("rx"));
+        player.setRy((Number) data.get("ry"));
+        player.setRz((Number) data.get("rz"));
     }
 
     private void sendToOthers(String event, UUID uuid, Map<String, Object> message) {

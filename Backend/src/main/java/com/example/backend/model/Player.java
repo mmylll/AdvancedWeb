@@ -10,13 +10,13 @@ import lombok.NoArgsConstructor;
 public class Player {
     private String username;
 
-    private Double x;
-    private Double y;
-    private Double z;
+    private Number x;
+    private Number y;
+    private Number z;
 
-    private Double rx;
-    private Double ry;
-    private Double rz;
+    private Number rx;
+    private Number ry;
+    private Number rz;
 
     private Integer plate;
 }

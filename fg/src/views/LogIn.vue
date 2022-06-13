@@ -143,9 +143,9 @@ export default {
               if (resp.data.status === 200) {
                 ElMessage.success('登录成功')
                 this.$router.replace('/About')
-                this.$store.state.username = this.loginForm.Username
                 console.log(resp)
                 this.$store.commit('setToken', resp.data.data)
+                this.$store.commit('setUsername', this.loginForm.Username)
               } else {
                 ElMessage.error(resp.data.message)
               }

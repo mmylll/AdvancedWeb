@@ -5,7 +5,7 @@
         title="退出"
         width="30%"
         center
-    >
+        id="quit">
       <h2>是否退出</h2>
       <div>
         <el-button @click="quit">确定</el-button>
@@ -14,7 +14,11 @@
     </el-dialog>
   </div>
 </template>
-
+<style>
+#quit {
+  z-index: 12000;
+}
+</style>
 <script>
 import * as THREE from 'three'
 import FirstPersonControls from "../../public/js/FirstPersonControls";
@@ -47,6 +51,10 @@ export default {
 
       // 角色
       player: {
+        username: this.$store.state.username,
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
         rx: 0.0,
         rz: 0.0,
         ry: 0.0,
@@ -105,21 +113,20 @@ export default {
       this.renderCanvas()
     },
     quit() {
-      if (!this.player.plate) {
+      console.log(111111)
+      if (this.player.plate !== null) {
+        console.log(2)
         this.$message({
           message: '必须放下持有的圆盘，才能离开场景',
           type: 'error'
         })
       } else {
-        socket.on('Leave', this.player).then(() => {
+        console.log(111)
+        socket.emit('OnLeave', this.player, () => {
           socket.disconnect()
-          this.$message({
-            message: "退出成功",
-            type: 'success'
-          })
         })
+        console.log(1111)
       }
-      this.quitDialog = false
     },
 
     addCylinder() {
@@ -233,8 +240,8 @@ export default {
         this.currentAction.play();
         scene.add(this.role);
         this.firstPersonControl.role = this.role
-        this.player.username = this.$store.state.username;
         this.updatePositionAndRotation()
+        console.log(this.role)
 
       }, undefined, function (e) {
         console.error(e);
@@ -242,12 +249,13 @@ export default {
     },
     keyPressed(event) {
       if (event.keyCode === 81) {
-        this.quitDialog = !this.quitDialog
+        this.quit()
+        console.log(this.quitDialog)
       } else if (event.keyCode === 32) { // 当按下空格
         if (!this.isPicked) { // 还没有人拿汉诺塔
           this.pickUp();
         }
-      } else if (this.lastkey !== event.keyCode) {
+      } else if (event.keyCode === 87 || event.keyCode === 83 || event.keyCode === 65 || event.keyCode === 68 || this.lastkey !== event.keyCode) {
         this.lastkey = event.keyCode;
         this.fadeToAction('Walking', 0.2);
       }
@@ -257,7 +265,7 @@ export default {
         if (this.isPicked && this.player.plate > 0) {
           this.putDown();
         }
-      } else {
+      } else if (event.keyCode !== 81) {
         this.lastkey = null;
         this.nextAction = this.nopeAction;
         this.fadeToAction('Standing', 0.2);
@@ -304,6 +312,7 @@ export default {
         this.otherPlayer = res.data.data.players;
         this.addCylinder();
         this.renderOtherPlayer();
+
       })
     },
     getPlayerByName(username) {
@@ -318,6 +327,7 @@ export default {
       //io.set('origins', '*:*');
       // socket = io.connect()
       socket = io.connect('ws://localhost:10246/', {
+        autoConnect: false
         //withCredentials: false,
         //query: {username: 'administer'}
         //extraHeaders: {
@@ -327,11 +337,17 @@ export default {
         //   'Sec-WebSocket-Key': '<calculated at runtime>',
         //   'Host': '<calculated at runtime>'
         // }
-      })
-      ;
+      });
+      socket.connect();
       socket.on('connect', () => {
         console.log(socket.connected)
         this.join();
+      })
+      socket.on('disconnect', () => {
+        this.$message({
+          message: "退出成功",
+          type: 'success'
+        })
       })
       //socket = io('ws://127.0.0.1:10246', {withCredentials: false, query: {username: 'administer'}})
 
@@ -356,7 +372,8 @@ export default {
           })
         }
       })
-      socket.on('OnPlayerUpdate', (player) => {
+      socket.on('OnPlayerUpdate', (res) => {
+        let player = res.player;
         let object = scene.getObjectByName(player.username);
         object.rotation.set(player.rx, player.ry, player.rz);
         object.position.set(player.x, player.y, player.z);
@@ -403,7 +420,7 @@ export default {
       })
     },
     updatePositionAndRotation() {
-      if (this.role !== null) {
+      if (this.role !== undefined) {
         this.player.x = this.role.position.x
         this.player.y = this.role.position.y
         this.player.z = this.role.position.z;
@@ -472,15 +489,15 @@ export default {
   mounted() {
     FirstPersonControls.bus = this.bus;
     this.init()
-    this.getRoomInfo();
     this.createRole()
-    this.socketInit()
+    this.getRoomInfo();
+    this.socketInit();
     window.addEventListener('keydown', this.keyPressed, false);
     window.addEventListener('keyup', this.keyUp, false)
-    // this.bus.on('modifyRole', () => {
-    //   this.updatePositionAndRotation()
-    //   socket.emit('OnUpdate', this.player)
-    // })
+    this.bus.on('modifyRole', () => {
+      this.updatePositionAndRotation()
+      socket.emit('OnUpdate', this.player)
+    })
     this.animate()
   }
 
