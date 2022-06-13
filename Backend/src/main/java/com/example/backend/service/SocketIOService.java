@@ -9,6 +9,7 @@ import com.example.backend.model.Player;
 import com.example.backend.model.Room;
 import com.example.backend.repository.UserLogRepository;
 import com.example.backend.utils.UserLog;
+import org.apache.tomcat.jni.Local;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -50,16 +52,30 @@ public class SocketIOService {
                 clientMap.put(uuid, client);
                 log.info("客户端连接: uuid=" + uuid);
             }
+            log.info("当前连接数:" + clientMap.size());
         });
 
 
         socketIOServer.addDisconnectListener(client -> {
             UUID uuid = client.getSessionId();
+            String username = room.getPlayers().get(uuid).getUsername();
             if (uuid != null) {
                 clientMap.remove(uuid);
+                room.getPlayers().remove(uuid);
                 client.disconnect();
             }
             log.info("客户端断开连接: uuid=" + uuid);
+            log.info("当前连接数:" + clientMap.size());
+            log.info("剩余玩家数:" + room.getPlayers().size());
+
+            Map<String, Object> map = new HashMap<>();
+            map.put("username", username);
+            // 转发离开的玩家名给其他玩家
+            sendToOthers("OnPlayerLeave", uuid, map);
+
+            // 向数据库写入日志
+            UserLog userLog = new UserLog(username, "leave", getLocalDateTime(), null);
+            userLogRepository.save(userLog);
         });
 
         socketIOServer.addEventListener("OnJoin", JSONObject.class, (client, data, ackRequest) -> {
@@ -70,31 +86,27 @@ public class SocketIOService {
             setPlayerPosition(player, data);
 
             // 添加到玩家列表
-            room.getPlayers().add(player);
+            room.getPlayers().put(uuid, player);
             Map<String, Object> map = new HashMap<>();
             map.put("player", player);
             // 转发新加入的玩家给其他玩家
             sendToOthers("OnPlayerJoin", uuid, map);
 
             // 向数据库写入日志
-            UserLog userLog = new UserLog(username, "join", LocalDateTime.now(), null);
+            UserLog userLog = new UserLog(username, "join", getLocalDateTime(), null);
             userLogRepository.save(userLog);
         });
 
         socketIOServer.addEventListener("OnLeave", JSONObject.class, (client, data, ackRequest) -> {
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
-            Player player = null;
-            for (Player p : room.getPlayers()) {
-                if (p.getUsername().equals(username)) {
-                    player = p;
-                    room.getPlayers().remove(p);
-                }
-            }
+            Player player = room.getPlayers().get(uuid);
             if (player == null) {
                 log.info("player is not found in player list");
                 return;
             }
+            room.getPlayers().remove(uuid);
+            log.info("玩家离开：" + player.getUsername());
 
             Map<String, Object> map = new HashMap<>();
             map.put("username", username);
@@ -102,18 +114,14 @@ public class SocketIOService {
             sendToOthers("OnPlayerLeave", uuid, map);
 
             // 向数据库写入日志
-            UserLog userLog = new UserLog(username, "leave", LocalDateTime.now(), null);
+            UserLog userLog = new UserLog(username, "leave", getLocalDateTime(), null);
             userLogRepository.save(userLog);
         });
 
         socketIOServer.addEventListener("OnUpdate", JSONObject.class, (client, data, ackRequest) -> {
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
-            Player player = null;
-            for (Player p : room.getPlayers()) {
-                if (p.getUsername().equals(username))
-                    player = p;
-            }
+            Player player = room.getPlayers().get(uuid);
             if (player == null) {
                 log.info("player is not found in player list");
                 return;
@@ -130,11 +138,7 @@ public class SocketIOService {
         socketIOServer.addEventListener("OnPickUp", JSONObject.class, (client, data, ackRequest) -> {
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
-            Player player = null;
-            for (Player p : room.getPlayers()) {
-                if (p.getUsername().equals(username))
-                    player = p;
-            }
+            Player player = room.getPlayers().get(uuid);
             if (player == null) {
                 log.info("player is not found in player list");
                 return;
@@ -156,18 +160,14 @@ public class SocketIOService {
             // 转发被更新的玩家给其他玩家
             sendToOthers("OnPlayerPickUp", uuid, map);
             // 向数据库写入日志
-            UserLog userLog = new UserLog(username, "pickUp", LocalDateTime.now(), plate);
+            UserLog userLog = new UserLog(username, "pickUp", getLocalDateTime(), plate);
             userLogRepository.save(userLog);
         });
 
         socketIOServer.addEventListener("OnPutDown", JSONObject.class, (client, data, ackRequest) -> {
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
-            Player player = null;
-            for (Player p : room.getPlayers()) {
-                if (p.getUsername().equals(username))
-                    player = p;
-            }
+            Player player = room.getPlayers().get(uuid);
             if (player == null) {
                 log.info("player is not found in player list");
                 return;
@@ -191,7 +191,7 @@ public class SocketIOService {
             // 转发给其他玩家
             sendToOthers("OnPlayerPutDown", uuid, map);
             // 向数据库写入日志
-            UserLog userLog = new UserLog(username, "putDown", LocalDateTime.now(), null);
+            UserLog userLog = new UserLog(username, "putDown", getLocalDateTime(), null);
             userLogRepository.save(userLog);
         });
 
@@ -221,12 +221,6 @@ public class SocketIOService {
     }
 
     private void setPlayerPosition(Player player, JSONObject data) {
-//        Double x = ((Number) data.get("x")).doubleValue();
-//        Double y = (Integer) data.get("y") * 1.0;
-//        Double z = ((Number) data.get("z")).doubleValue();
-//        Double rx = (Integer) data.get("rx") * 1.0;
-//        Double ry = ((Number) data.get("ry")).doubleValue();
-//        Double rz = (Integer) data.get("rz") * 1.0;
         player.setX((Number) data.get("x"));
         player.setY((Number) data.get("y"));
         player.setZ((Number) data.get("z"));
@@ -241,5 +235,11 @@ public class SocketIOService {
                 socketIOClient.sendEvent(event, message);
             }
         });
+    }
+
+    private LocalDateTime getLocalDateTime() {
+        LocalDateTime now = LocalDateTime.now();
+        ZoneId zoneId = ZoneId.of("Asia/Shanghai");
+        return now.atZone(zoneId).toLocalDateTime();
     }
 }

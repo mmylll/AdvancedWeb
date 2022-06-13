@@ -113,19 +113,18 @@ export default {
       this.renderCanvas()
     },
     quit() {
-      console.log(111111)
+      console.log('quiting...')
       if (this.player.plate !== null) {
-        console.log(2)
+        console.log('plate on hand')
         this.$message({
           message: '必须放下持有的圆盘，才能离开场景',
           type: 'error'
         })
       } else {
-        console.log(111)
-        socket.emit('OnLeave', this.player, () => {
-          socket.disconnect()
-        })
-        console.log(1111)
+        console.log('no plate on hand')
+        socket.disconnect();
+        console.log('quited')
+        this.quitDialog = true;
       }
     },
 
@@ -309,7 +308,12 @@ export default {
       this.axios.get('/Join').then((res) => {
         console.log(res)
         this.columns = res.data.data.columns;
-        this.otherPlayer = res.data.data.players;
+        console.log('other players:')
+        for (let i in res.data.data.players) {
+          console.log(i)
+          this.otherPlayer.push(res.data.data.players[i]);
+          console.log(res.data.data.players[i])
+        }
         this.addCylinder();
         this.renderOtherPlayer();
 
@@ -360,7 +364,8 @@ export default {
           type: 'success'
         })
       })
-      socket.on('OnPlayerLeave', (username) => {
+      socket.on('OnPlayerLeave', (res) => {
+        let username = res.username;
         let player = this.getPlayerByName(username);
         if (player !== null) {
           this.otherPlayer.splice(this.otherPlayer.indexOf(player), 1);

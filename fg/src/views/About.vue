@@ -58,17 +58,13 @@ export default {
   },
   methods: {
     getLog(){
-      this.axios.get('/Log',{
-        param:{
-          'username': this.username
-        }
-      }).then((res) => {
-        this.logs = res.data.log;
+      this.axios.get('/Log?username='+this.$store.state.username).then((res) => {
+        this.logs = res.data.data;
       })
     }
   },
   mounted() {
-    this.getLog(),
+    this.getLog();
     this.robot3D = new Base3d('#scene');
   }
 }

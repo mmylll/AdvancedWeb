@@ -5,6 +5,7 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Data
@@ -13,13 +14,13 @@ public class Room {
     public static int plateNumber = 3;
 
     private List<Column> columns;
-    private List<Player> players;
+    private Map<UUID, Player> players;
 
     private static Room room;
 
     private Room() {
         this.columns = new ArrayList<>();
-        this.players = new ArrayList<>();
+        this.players = new ConcurrentHashMap<>();
     }
 
     public static Room getRoom() {
