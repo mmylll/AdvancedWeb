@@ -152,15 +152,19 @@ public class SocketIOService {
 
             Integer columnIndex = (Integer) data.get("columnIndex");
             Column column = room.getColumns().get(columnIndex);
+            Plate plate1 = null;
+            int index = 0;
             // 更新柱子的plates
             synchronized (room.getColumns().get(columnIndex)) {
-                column.getPlates().remove(0);
+                index = column.getPlates().size() - 1;
+                plate1 = column.getPlates().remove(index);
             }
 
             Map<String, Object> map = new HashMap<>();
             map.put("username", username);
             map.put("index", plate);
             map.put("columnIndex",columnIndex);
+            map.put("plate", plate1);
             // 转发被更新的玩家给其他玩家
             sendToOthers("OnPlayerPickUp", uuid, map);
             // 向数据库写入日志
@@ -188,13 +192,15 @@ public class SocketIOService {
             Column column = room.getColumns().get(columnIndex);
             // 更新柱子的plates
             synchronized (room.getColumns().get(columnIndex)) {
-                column.getPlates().add(0, plate);
+                //column.getPlates().add(0, plate);
+                column.getPlates().add(plate);
             }
 
             Map<String, Object> map = new HashMap<>();
             map.put("username", username);
             map.put("index", plateIndex);
             map.put("columnIndex", columnIndex);
+            map.put("plate",plate);
             // 转发给其他玩家
             sendToOthers("OnPlayerPutDown", uuid, map);
             // 向数据库写入日志

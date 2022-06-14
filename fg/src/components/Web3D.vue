@@ -96,6 +96,9 @@ export default {
   },
   methods: {
     init() {
+      console.log("init()")
+      console.log(this.columns)
+
       scene = new THREE.Scene()
       this.render = new THREE.WebGLRenderer({antialias: true})
       this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
@@ -130,6 +133,9 @@ export default {
     },
 
     addCylinder() {
+      console.log("addCylinder()")
+      console.log(this.columns)
+
       let geometry, cylinder
       let material = new THREE.MeshBasicMaterial({color: 0xC4C2C0}),
           plateMaterial = new THREE.MeshLambertMaterial({color: 0xffff00})
@@ -218,6 +224,9 @@ export default {
     },
     // 创建人物
     createRole() {
+      console.log("createRole()")
+      console.log(this.columns)
+
       this.loader = new GLTFLoader()
       this.dracoLoader = new DRACOLoader()
       this.dracoLoader.setDecoderPath('/draco/')
@@ -290,6 +299,9 @@ export default {
       }
     },
     renderOtherPlayer() {
+      console.log("renderOtherPlayer()")
+      console.log(this.columns)
+
       for (let player of this.otherPlayer) {
         this.renderAPlayer(player);
       }
@@ -307,8 +319,10 @@ export default {
       })
     },
     getRoomInfo() {
+      console.log("getRoomInfo()")
+      console.log(this.columns)
+
       this.axios.get('/Join').then((res) => {
-        this.cop
         this.columns = this.deepClone(res.data.data.columns);
         //this.columns = res.data.data.columns;
         console.log('getroominfo:  columns')
@@ -328,6 +342,9 @@ export default {
       return null
     },
     socketInit() {
+      console.log("socketInit()")
+      console.log(this.columns)
+
       //io.set('transports', ['websocket', 'xhr-polling', 'jsonp-polling', 'htmlfile', 'flashsocket']);
       //io.set('origins', '*:*');
       // socket = io.connect()
@@ -357,8 +374,11 @@ export default {
       //socket = io('ws://127.0.0.1:10246', {withCredentials: false, query: {username: 'administer'}})
 
       socket.on('OnPlayerJoin', (player) => {
+        console.log("onPlayerJoin")
+        console.log(this.columns)
+
         this.otherPlayer.push(player.player)
-        console.log(player)
+        //console.log(player)
         this.renderAPlayer(player.player);
         this.$message({
           message: player.player.username + "加入了游戏",
@@ -390,8 +410,11 @@ export default {
 
       // 监听用户拿起汉诺塔
       socket.on('OnPlayerPickUp', (res) => {
-        console.log("onplayerPickuo")
-        console.log(this.columns);
+        console.log("onPlayerPickUo")
+        console.log(res)
+        console.log(this.columns[0].plates);
+        console.log(this.columns[res.columnIndex].plates.length);
+
         let username = res.username;
         let index = res.index;
         this.isPicked = true; // 表明已经有人拿起了一块汉诺塔
@@ -403,26 +426,36 @@ export default {
 
 
         console.log(this.columns[res.columnIndex].plates)
-        player.plate = this.columns[res.columnIndex].plates.pop();
+        console.log(this.columns[res.columnIndex].plates.length);
+        this.columns[res.columnIndex].plates.pop();
+        console.log("----------------")
+        console.log(res.plate)
+        player.plate = res.plate;
+        console.log(player.plate)
+        console.log(player)
+        console.log("----------------------")
         console.log(this.columns[res.columnIndex].plates)
+        console.log(this.columns[res.columnIndex].plates.length);
 
         console.log("onplayerpickup player:")
         console.log(player)
-        console.log()
         // 更新柱子，使得该编号的汉诺塔从柱子上消失
         this.pickedUpPlateObject.visible = false;
       })
       // 监听用户放下汉诺塔
       socket.on('OnPlayerPutDown', (res) => {
         console.log("onPlayerPutDown")
-        console.log(this.columns)
+        console.log(res)
+        console.log(this.columns[this.originalColumn].plates.length)
         let username = res.username;
         let columnIndex = res.columnIndex;
         // 更新玩家信息
         let player = this.getPlayerByName(username);
         console.log("player:")
         console.log(player)
-        let plate = player.plate;
+        console.log(player.plate)
+
+        let plate = res.plate;
 
         console.log("nan:")
         console.log(this.columns[columnIndex].plates)
@@ -438,7 +471,8 @@ export default {
         this.originalColumn = -1;
         console.log("putdown -----")
         console.log(this.pickedUpPlateObject)
-        console.log(this.columns)
+        console.log(this.columns[columnIndex].plates)
+        console.log(this.columns[columnIndex].plates.length)
         player.plate = null; // 更新该玩家信息
       })
     },
@@ -451,13 +485,18 @@ export default {
       }
     },
     join() {
+      console.log("join()")
+      console.log(this.columns)
       //console.log(socket.connected)
-      console.log(this.player)
+      //console.log(this.player)
       socket.emit('OnJoin', this.player)
     },
 
     // 拿起汉诺塔事件
     pickUp() {
+      console.log("pickUp()")
+      console.log(this.columns)
+
       if (this.player.plate == null) {  // 该玩家还未拿起块
         // 玩家的位置
         console.log("player:")
@@ -480,7 +519,17 @@ export default {
         // 编号大于0，表示拿到了汉诺塔
         if (index >= 0) {
           this.isPicked = true;
-          this.player.plate = this.columns[columnIndex].plates.pop();
+          let plates = this.columns[columnIndex].plates;
+          console.log(plates.length)
+          this.player.plate = plates.pop();
+          // console.log("------------------------pickUp()--pop()前")
+          // console.log(plates)
+          //
+          // console.log(plates.length)
+          // console.log(this.columns[columnIndex].plates)
+          // console.log(this.columns[columnIndex].plates.length)
+          // console.log(this.player.plate)
+
           this.originalColumn = columnIndex;
           this.pickedUpPlateObject = scene.getObjectByName(('plate'+index));
 
@@ -492,6 +541,10 @@ export default {
     },
     // 放下汉诺塔事件
     putDown() {
+      console.log("puDown()")
+      console.log(this.columns[0].plates)
+      console.log(this.columns[0].plates.length)
+
       if (this.player.plate != null) { // 该角色有一个汉诺塔
         let rolePosition = new THREE.Vector3(this.player.x, this.player.y, 0);
         console.log("enter putdown:")
@@ -513,9 +566,9 @@ export default {
         console.log("username: "+this.player.username+ "columnIndex: "+columnIndex+"index: "+index)
         // 更新玩家信息
         let plate = this.player.plate;
-        console.log("player.plate:")
-        console.log(plate)
-        console.log(this.pickedUpPlateObject)
+        // console.log("player.plate:")
+        // console.log(plate)
+        // console.log(this.pickedUpPlateObject)
         this.player.plate = null; // 更新该玩家信息
         // 更新柱子上汉诺塔放下的情况
         let column = scene.getObjectByName('column' + columnIndex);
@@ -525,6 +578,9 @@ export default {
         this.pickedUpPlateObject.visible = true;
         this.originalColumn = -1;
         this.isPicked = false;
+        console.log("putdown----后")
+        console.log(this.columns[0].plates)
+        console.log(this.columns[0].plates.length)
       }
     },
     deepClone(target) {
