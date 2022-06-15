@@ -92,7 +92,8 @@ export default {
       pickedUpPlateObject: null, // 被拿起块的模型对象
       isPicked: false,
       originColumn: -1, // 被拿起的块的原来的柱子编号
-      copyColumns: []
+      copyColumns: [],
+      colors:["#ff0000","#00ff00","#0000ff"]
     }
   },
   methods: {
@@ -131,6 +132,7 @@ export default {
         socket.disconnect();
         console.log('quited')
         this.quitDialog = true;
+        this.$router.replace('/About')
       }
     },
 
@@ -139,8 +141,8 @@ export default {
       console.log(this.columns)
 
       let geometry, cylinder
-      let material = new THREE.MeshBasicMaterial({color: 0xC4C2C0}),
-          plateMaterial = new THREE.MeshLambertMaterial({color: 0xffff00})
+      let material = new THREE.MeshBasicMaterial({color: 0xC4C2C0})
+         // plateMaterial = new THREE.MeshLambertMaterial({color: 0xffff00})
       for (let i = 0; i < this.columns.length; i++) {
         let column = this.columns[i];
         geometry = new THREE.CylinderGeometry(5, 5, 100.0, 32);
@@ -148,15 +150,18 @@ export default {
         scene.add(cylinder)
         cylinder.name = 'column' + i
         cylinder.position.set(100 * (i - 1), 0, -50)
-        let height = 0;
+        let height = 3.0;
         for (let plate of column.plates) {
           let plateGeometry = new THREE.CylinderGeometry(plate.radius, plate.radius, plate.height, 32);
+          let plateMaterial = new THREE.MeshLambertMaterial({color: this.colors[plate.index%3]})
+          console.log("------")
+          console.log(plate)
           let plateMesh = new THREE.Mesh(plateGeometry, plateMaterial);
           scene.add(plateMesh)
           plateMesh.name = 'plate' + plate.index;
           plateMesh.position.set(...cylinder.position);
           plateMesh.position.y = height;
-          height += 10.0;
+          height += plate.height;
         }
       }
     },
@@ -262,7 +267,7 @@ export default {
     },
     keyPressed(event) {
       if (event.keyCode === 81) {
-        this.quit()
+        this.quitDialog = true;
         console.log(this.quitDialog)
       } else if (event.keyCode === 32) { // 当按下空格
         if (!this.isPicked) { // 还没有人拿汉诺塔
@@ -402,8 +407,11 @@ export default {
         }
       })
       socket.on('OnPlayerUpdate', (res) => {
+        console.log("update")
+
         let player = res.player;
         let object = scene.getObjectByName(player.username);
+        console.log(object)
         object.rotation.set(player.rx, player.ry, player.rz);
         object.position.set(player.x, player.y, player.z);
         let otherPlayer = this.getPlayerByName(player.username);
@@ -423,9 +431,9 @@ export default {
         this.originalColumn = res.columnIndex;
         //更新该玩家信息，表明该玩家持有该汉诺塔
         let player = this.getPlayerByName(username);
+        this.columns[res.columnIndex].plates.pop();
 
         player.plate = res.plate;
-
         // 更新柱子，使得该编号的汉诺塔从柱子上消失
         this.pickedUpPlateObject.visible = false;
       })
@@ -450,7 +458,8 @@ export default {
         // 更新柱子上汉诺塔放下的情况
         let column = scene.getObjectByName('column' + columnIndex);
         this.pickedUpPlateObject.position.set(...column.position);  // 更改该块的位置
-        this.pickedUpPlateObject.position.y = this.columns[columnIndex].plates.length * 10;  // 更新块的高度
+        console.log(this.columns[columnIndex].plates.length)
+        this.pickedUpPlateObject.position.y = this.columns[columnIndex].plates.length * 10 + 3.0;  // 更新块的高度
         this.columns[columnIndex].plates.push(plate);
         this.pickedUpPlateObject.visible = true;
         //this.pickedUpPlateObject = null;
@@ -482,8 +491,8 @@ export default {
         this.player.x = this.role.position.x
         this.player.y = this.role.position.y
         this.player.z = this.role.position.z;
-        this.player.ry = Math.PI;
-        //this.player.ry = this.role.rotation.y;
+        //this.player.ry = Math.PI;
+        this.player.ry = this.role.rotation.y;
       }
     },
     join() {
@@ -549,7 +558,7 @@ export default {
         // 更新柱子上汉诺塔放下的情况
         let column = scene.getObjectByName('column' + columnIndex);
         this.pickedUpPlateObject.position.set(...column.position);  // 更改该块的位置
-        this.pickedUpPlateObject.position.y = this.columns[columnIndex].plates.length * plate.height;  // 更新块的高度
+        this.pickedUpPlateObject.position.y = this.columns[columnIndex].plates.length * plate.height + 3.0;  // 更新块的高度
         this.columns[columnIndex].plates.push(plate);
         this.pickedUpPlateObject.visible = true;
         this.originalColumn = -1;
@@ -570,7 +579,6 @@ export default {
     window.addEventListener('keydown', this.keyPressed, false);
     window.addEventListener('keyup', this.keyUp, false)
     this.bus.on('modifyRole', () => {
-      console.log('modify bus')
       this.updatePositionAndRotation()
       socket.emit('OnUpdate', this.player)
     })

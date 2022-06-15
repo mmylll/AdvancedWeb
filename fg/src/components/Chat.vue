@@ -59,12 +59,13 @@ export default {
 <style scoped>
 .chat {
   width: 30%;
-  max-height: 23%;
-  min-height: 10%;
+  max-height: 200px;
+  min-height: 100px;
   position: absolute;
   left: 30px;
   top: 500px;
   z-index: 1000;
+  overflow-y: auto;
   background-color: rgba(0, 0, 0, 0);
 }
 

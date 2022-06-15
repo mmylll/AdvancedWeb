@@ -8,22 +8,28 @@
       <router-link to="/about">
         <span class="message">个人信息</span>
       </router-link>
+      <span class="exit" @click="admin" v-if="this.$store.state.username === 'administer'">管理员</span>
       <router-link to="/">
         <span class="exit">退出</span>
       </router-link>
+      <el-dialog
+              v-model="quitDialog"
+              title="退出"
+              width="30%"
+              center
+              id="quit">
+        <div>
+          <el-button @click="quit">确定</el-button>
+          <el-button @click="quitDialog=false">取消</el-button>
+        </div>
+      </el-dialog>
     </div>
     <div class="info">
       <h2>个人信息展示</h2>
       <div class="head">
         <div class="img" id="scene">
         </div>
-
-        <div class="intro">
-          <h3>自我介绍：</h3>
-          <span>....</span>
-        </div>
-      </div>
-      <div class="">
+        <div class="username">
         <ul>
           <li>
             <div class="title">用户名：</div>
@@ -35,9 +41,8 @@
           </li>
         </ul>
       </div>
-      <div class="game">
-        <h2 style="text-align: left">汉诺塔技巧：</h2>
       </div>
+
       <div class="log">
         <h2>操作记录：</h2>
         <p v-for="(log, index) in logs" :id="index">操作类型： {{log.type}}   操作记录： {{log.date}}</p>
@@ -53,7 +58,8 @@ export default {
     return {
       username: this.$store.state.username,
       logs: [],
-      robot3D: {}
+      robot3D: {},
+      quitDialog: false
     }
   },
   methods: {
@@ -61,6 +67,9 @@ export default {
       this.axios.get('/Log?username='+this.$store.state.username).then((res) => {
         this.logs = res.data.data;
       })
+    },
+    admin(){
+      this.quitDialog = true;
     }
   },
   mounted() {
