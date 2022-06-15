@@ -1,7 +1,8 @@
 <template>
   <div class="chat">
     <div :class="{'chat-window':true,'selected':isShow}">
-      <p v-for="(message,index) in messages" :id="index"><strong>{{ message.user }}:</strong>{{ message.content }}</p>
+      <p v-for="(message,index) in messages" :id="index"><strong>{{ message.username }}: </strong>{{ message.message }}
+      </p>
     </div>
     <input type="text" v-show="isShow" v-model="message" ref="messageInput">
   </div>
@@ -10,6 +11,7 @@
 
 <script>
 import socket from "@/socket";
+
 export default {
   name: "Chat",
   data() {
@@ -27,10 +29,17 @@ export default {
           if (this.isShow) {
             this.$refs.messageInput.focus()
           }
-          if (!this.isShow && this.message != '') {
+          if (!this.isShow && this.message !== '') {
+            let messageObject = {
+              username: this.$store.state.username,
+              message: this.message
+            }
+            console.log('send mesage')
             // 发送消息
-            socket.emit('OnSendMessage', this.message);
-            this.message = '';
+            socket.emit('OnSendMessage', messageObject, () => {
+              this.messages.push(messageObject)
+              this.message = '';
+            });
           }
         }
       }
@@ -40,6 +49,7 @@ export default {
     this.onKeyBoard()
     // 接收消息
     socket.on('OnPlayerSendMessage', (message) => {
+      console.log('receive message', message)
       this.messages.push(message);
     })
   }

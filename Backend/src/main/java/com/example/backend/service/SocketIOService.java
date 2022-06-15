@@ -165,8 +165,7 @@ public class SocketIOService {
                     Map<String, Object> map = new HashMap<>();
                     map.put("state", 0);
                     client.sendEvent("PickedUp", map);
-                }
-                else {
+                } else {
                     // 否则，发回成功信息
                     int lastIndex = column.getPlates().size() - 1;
                     plate = column.getPlates().remove(lastIndex);
@@ -186,7 +185,7 @@ public class SocketIOService {
             map.clear();
             map.put("username", username);
             map.put("index", plateIndex);
-            map.put("columnIndex",columnIndex);
+            map.put("columnIndex", columnIndex);
             map.put("plate", plate);
             // 转发被更新的玩家给其他玩家
             sendToOthers("OnPlayerPickUp", uuid, map);
@@ -224,7 +223,7 @@ public class SocketIOService {
             map.put("username", username);
             map.put("index", plateIndex);
             map.put("columnIndex", columnIndex);
-            map.put("plate",plate);
+            map.put("plate", plate);
             // 转发给其他玩家
             sendToOthers("OnPlayerPutDown", uuid, map);
             // 向数据库写入日志
@@ -236,7 +235,7 @@ public class SocketIOService {
             log.info("--------------------------OnSendMessage");
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
-            String message = client.getHandshakeData().getSingleUrlParam("message");
+            String message = (String) data.get("message");
             log.info("玩家" + username + ": " + message);
 
             Map<String, Object> map = new HashMap<>();

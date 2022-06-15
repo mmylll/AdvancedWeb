@@ -27,8 +27,9 @@ import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader'
 //import socket from "@/socket";
 import {getCurrentInstance} from "vue";
 import io from "socket.io-client";
+import socket from "@/socket";
 
-let scene, role, socket;
+let scene, role
 export default {
   name: "Web3D",
   data() {
@@ -57,7 +58,7 @@ export default {
         z: 0.0,
         rx: 0.0,
         rz: 0.0,
-        ry: 0.0,
+        ry: Math.PI,
         plate: null
       },
       //role: null,
@@ -96,14 +97,14 @@ export default {
   },
   methods: {
     init() {
-      console.log("init()"+new Date())
+      console.log("init()" + new Date())
       console.log(this.columns)
 
       scene = new THREE.Scene()
       this.render = new THREE.WebGLRenderer({antialias: true})
       this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
       this.camera.position.set(0, 100, 0)
-      //this.camera.rotation.set(0,Math.PI,0);
+      this.camera.rotation.set(0, Math.PI, 0);
 
 
       this.render.setClearColor(0xffffff, 1.0)
@@ -235,6 +236,7 @@ export default {
       this.loader.setDRACOLoader(this.dracoLoader)
 
       this.loader.load('3D/RobotExpressive.glb', gltf => {
+        console.log('create role call back')
         this.role = gltf.scene
         this.role.position.y = 0
         this.role.scale.set(7, 7, 7)// 设置模型大小
@@ -251,8 +253,8 @@ export default {
         this.currentAction.play();
         scene.add(this.role);
         this.firstPersonControl.role = this.role
+        console.log('set role')
         this.updatePositionAndRotation()
-        console.log(this.role)
 
       }, undefined, function (e) {
         console.error(e);
@@ -324,6 +326,7 @@ export default {
       console.log(this.columns)
 
       this.axios.get('/Join').then((res) => {
+        console.log('get roominfo callback')
         this.columns = res.data.data.columns;
         //this.columns = res.data.data.columns;
         console.log('getroominfo:  columns')
@@ -349,18 +352,18 @@ export default {
       //io.set('transports', ['websocket', 'xhr-polling', 'jsonp-polling', 'htmlfile', 'flashsocket']);
       //io.set('origins', '*:*');
       // socket = io.connect()
-      socket = io.connect('ws://localhost:10246/', {
-        autoConnect: false
-        //withCredentials: false,
-        //query: {username: 'administer'}
-        //extraHeaders: {
-        //   'Sec-WebSocket-Version': 13,
-        //   'Connection': 'Upgrade',
-        //   'Upgrade': 'websocket',
-        //   'Sec-WebSocket-Key': '<calculated at runtime>',
-        //   'Host': '<calculated at runtime>'
-        // }
-      });
+      // socket = io.connect('ws://localhost:10246/', {
+      //   autoConnect: false
+      //   //withCredentials: false,
+      //   //query: {username: 'administer'}
+      //   //extraHeaders: {
+      //   //   'Sec-WebSocket-Version': 13,
+      //   //   'Connection': 'Upgrade',
+      //   //   'Upgrade': 'websocket',
+      //   //   'Sec-WebSocket-Key': '<calculated at runtime>',
+      //   //   'Host': '<calculated at runtime>'
+      //   // }
+      // });
       socket.connect();
       socket.on('connect', () => {
         console.log(socket.connected)
@@ -412,9 +415,6 @@ export default {
       // 监听用户拿起汉诺塔
       socket.on('OnPlayerPickUp', (res) => {
         console.log("onPlayerPickUo")
-        console.log(res)
-        console.log(this.columns[0].plates);
-        console.log(this.columns[res.columnIndex].plates.length);
 
         let username = res.username;
         let index = res.index;
@@ -425,21 +425,8 @@ export default {
         //更新该玩家信息，表明该玩家持有该汉诺塔
         let player = this.getPlayerByName(username);
 
-
-        console.log(this.columns[res.columnIndex].plates)
-        console.log(this.columns[res.columnIndex].plates.length);
-        this.columns[res.columnIndex].plates.pop();
-        console.log("----------------")
-        console.log(res.plate)
         player.plate = res.plate;
-        console.log(player.plate)
-        console.log(player)
-        console.log("----------------------")
-        console.log(this.columns[res.columnIndex].plates)
-        console.log(this.columns[res.columnIndex].plates.length);
 
-        console.log("onplayerpickup player:")
-        console.log(player)
         // 更新柱子，使得该编号的汉诺塔从柱子上消失
         this.pickedUpPlateObject.visible = false;
       })
@@ -510,7 +497,7 @@ export default {
           let column = scene.getObjectByName('column' + i);  // 获得柱子的模型
           let columnPosition = new THREE.Vector3(column.position.x, column.position.y, 0);
           if (playerPosition.distanceTo(columnPosition) < 25 &&
-                  this.columns[i].plates.length > 0) { // 角色距离该柱子足够近且该柱子上存在汉诺塔
+              this.columns[i].plates.length > 0) { // 角色距离该柱子足够近且该柱子上存在汉诺塔
             let plates = this.columns[i].plates;
             index = plates[plates.length - 1].index;
             columnIndex = i;
@@ -524,9 +511,9 @@ export default {
 
           socket.on('PickedUp', (res) => {
             console.log("检测pickedup")
-            console .log(res)
+            console.log(res)
             let state = res.state;
-            if (state){
+            if (state) {
               this.isPicked = true;
               let plates = this.columns[columnIndex].plates;
               console.log(plates.length)
@@ -540,7 +527,7 @@ export default {
               // console.log(this.player.plate)
 
               this.originalColumn = columnIndex;
-              this.pickedUpPlateObject = scene.getObjectByName(('plate'+index));
+              this.pickedUpPlateObject = scene.getObjectByName(('plate' + index));
 
               this.pickedUpPlateObject.visible = false; // 隐藏该模型
             }
@@ -564,7 +551,7 @@ export default {
           let columnPosition = new THREE.Vector3(column.position.x, column.position.y, 0);
           if (rolePosition.distanceTo(columnPosition) < 25) { // 角色距离该柱子足够近
             let plates = this.columns[i].plates;
-            if (plates.length == 0 || plates[plates.length - 1].radius > this.player.plate.radius) {
+            if (plates.length === 0 || plates[plates.length - 1].radius > this.player.plate.radius) {
               columnIndex = i;
             }
             break;
@@ -573,7 +560,7 @@ export default {
         socket.emit('OnPutDown', {username: this.player.username, columnIndex: columnIndex, index: index});
 
 
-        console.log("username: "+this.player.username+ "columnIndex: "+columnIndex+"index: "+index)
+        console.log("username: " + this.player.username + "columnIndex: " + columnIndex + "index: " + index)
         // 更新玩家信息
         let plate = this.player.plate;
         // console.log("player.plate:")
@@ -604,13 +591,12 @@ export default {
     window.addEventListener('keydown', this.keyPressed, false);
     window.addEventListener('keyup', this.keyUp, false)
     this.bus.on('modifyRole', () => {
+      console.log('modify bus')
       this.updatePositionAndRotation()
       socket.emit('OnUpdate', this.player)
     })
     this.animate()
   }
-
-
 }
 </script>
 

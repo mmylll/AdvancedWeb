@@ -45,7 +45,7 @@ class FirstPersonControls {
     }
 
     onMouseMove(event) {
-        if (this.isLocked) {
+        if (this.isLocked && this.role) {
             let movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
             let movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
 
@@ -55,10 +55,8 @@ class FirstPersonControls {
             this.pitchObject.rotation.x -= movementY * 0.002;
             // 这一步的目的是什么
             this.pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.pitchObject.rotation.x));
-            if (this.role) {
-                this.role.rotation.y -= movementX * 0.002;
-                FirstPersonControls.bus.emit('modifyRole');
-            }
+
+            this.role.rotation.y -= movementX * 0.002;
         }
     }
 
@@ -97,6 +95,7 @@ class FirstPersonControls {
     }
 
     update(delta) {
+
         // 移动速度
         const moveSpeed = 100;
 
@@ -123,7 +122,10 @@ class FirstPersonControls {
             if (this.role)
                 this.role.translateX(-moveSpeed * direction.x * delta);
         }
-        FirstPersonControls.bus.emit('modifyRole');
+        if (this.role) {
+            FirstPersonControls.bus.emit('modifyRole');
+        }
+
     }
 
     connect() {
