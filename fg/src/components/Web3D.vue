@@ -96,14 +96,15 @@ export default {
   },
   methods: {
     init() {
-      console.log("init()")
+      console.log("init()"+new Date())
       console.log(this.columns)
 
       scene = new THREE.Scene()
       this.render = new THREE.WebGLRenderer({antialias: true})
       this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
       this.camera.position.set(0, 100, 0)
-      this.camera.rotation.set(0,Math.PI,0);
+      //this.camera.rotation.set(0,Math.PI,0);
+
 
       this.render.setClearColor(0xffffff, 1.0)
       this.render.setSize(window.innerWidth, window.innerHeight)
@@ -323,7 +324,7 @@ export default {
       console.log(this.columns)
 
       this.axios.get('/Join').then((res) => {
-        this.columns = this.deepClone(res.data.data.columns);
+        this.columns = res.data.data.columns;
         //this.columns = res.data.data.columns;
         console.log('getroominfo:  columns')
         console.log(this.columns)
@@ -481,7 +482,8 @@ export default {
         this.player.x = this.role.position.x
         this.player.y = this.role.position.y
         this.player.z = this.role.position.z;
-        this.player.ry = this.role.rotation.y;
+        this.player.ry = Math.PI;
+        //this.player.ry = this.role.rotation.y;
       }
     },
     join() {
@@ -518,24 +520,31 @@ export default {
         }
         // 编号大于0，表示拿到了汉诺塔
         if (index >= 0) {
-          this.isPicked = true;
-          let plates = this.columns[columnIndex].plates;
-          console.log(plates.length)
-          this.player.plate = plates.pop();
-          // console.log("------------------------pickUp()--pop()前")
-          // console.log(plates)
-          //
-          // console.log(plates.length)
-          // console.log(this.columns[columnIndex].plates)
-          // console.log(this.columns[columnIndex].plates.length)
-          // console.log(this.player.plate)
-
-          this.originalColumn = columnIndex;
-          this.pickedUpPlateObject = scene.getObjectByName(('plate'+index));
-
-          this.pickedUpPlateObject.visible = false; // 隐藏该模型
-
           socket.emit('OnPickUp', {username: this.player.username, columnIndex: columnIndex, index: index});
+
+          socket.on('PickedUp', (res) => {
+            console.log("检测pickedup")
+            console .log(res)
+            let state = res.state;
+            if (state){
+              this.isPicked = true;
+              let plates = this.columns[columnIndex].plates;
+              console.log(plates.length)
+              this.player.plate = plates.pop();
+              // console.log("------------------------pickUp()--pop()前")
+              // console.log(plates)
+              //
+              // console.log(plates.length)
+              // console.log(this.columns[columnIndex].plates)
+              // console.log(this.columns[columnIndex].plates.length)
+              // console.log(this.player.plate)
+
+              this.originalColumn = columnIndex;
+              this.pickedUpPlateObject = scene.getObjectByName(('plate'+index));
+
+              this.pickedUpPlateObject.visible = false; // 隐藏该模型
+            }
+          })
         }
       }
     },
@@ -563,6 +572,7 @@ export default {
         }
         socket.emit('OnPutDown', {username: this.player.username, columnIndex: columnIndex, index: index});
 
+
         console.log("username: "+this.player.username+ "columnIndex: "+columnIndex+"index: "+index)
         // 更新玩家信息
         let plate = this.player.plate;
@@ -582,38 +592,6 @@ export default {
         console.log(this.columns[0].plates)
         console.log(this.columns[0].plates.length)
       }
-    },
-    deepClone(target) {
-      // 定义一个变量
-      let result;
-      // 如果当前需要深拷贝的是一个对象的话
-      if (typeof target === 'object') {
-        // 如果是一个数组的话
-        if (Array.isArray(target)) {
-          result = []; // 将result赋值为一个数组，并且执行遍历
-          for (let i in target) {
-            // 递归克隆数组中的每一项
-            result.push(this.deepClone(target[i]))
-          }
-          // 判断如果当前的值是null的话；直接赋值为null
-        } else if(target===null) {
-          result = null;
-          // 判断如果当前的值是一个RegExp对象的话，直接赋值
-        } else if(target.constructor===RegExp){
-          result = target;
-        }else {
-          // 否则是普通对象，直接for in循环，递归赋值对象的所有值
-          result = {};
-          for (let i in target) {
-            result[i] = this.deepClone(target[i]);
-          }
-        }
-        // 如果不是对象的话，就是基本数据类型，那么直接赋值
-      } else {
-        result = target;
-      }
-      // 返回最终结果
-      return result;
     }
 
   },
