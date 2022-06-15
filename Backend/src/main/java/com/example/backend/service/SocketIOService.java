@@ -9,7 +9,6 @@ import com.example.backend.model.Player;
 import com.example.backend.model.Room;
 import com.example.backend.repository.UserLogRepository;
 import com.example.backend.utils.UserLog;
-import org.apache.tomcat.jni.Local;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +57,7 @@ public class SocketIOService {
 
 
         socketIOServer.addDisconnectListener(client -> {
+            log.info("-------------------断开连接");
             UUID uuid = client.getSessionId();
             String username = room.getPlayers().get(uuid).getUsername();
             if (uuid != null) {
@@ -80,6 +80,7 @@ public class SocketIOService {
         });
 
         socketIOServer.addEventListener("OnJoin", JSONObject.class, (client, data, ackRequest) -> {
+            log.info("-------------------加入");
             UUID uuid = client.getSessionId();
             Player player = new Player();
             String username = (String) data.get("username");
@@ -89,6 +90,7 @@ public class SocketIOService {
             // 添加到玩家列表
             room.getPlayers().put(uuid, player);
             log.info("玩家加入：" + player.getUsername());
+            log.info("当前玩家数:" + room.getPlayers().size());
 
             Map<String, Object> map = new HashMap<>();
             map.put("player", player);
@@ -101,6 +103,7 @@ public class SocketIOService {
         });
 
         socketIOServer.addEventListener("OnLeave", JSONObject.class, (client, data, ackRequest) -> {
+            log.info("-------------------离开");
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
             Player player = room.getPlayers().get(uuid);
@@ -110,6 +113,7 @@ public class SocketIOService {
             }
             room.getPlayers().remove(uuid);
             log.info("玩家离开：" + player.getUsername());
+            log.info("当前玩家数:" + room.getPlayers().size());
 
             Map<String, Object> map = new HashMap<>();
             map.put("username", username);
@@ -139,7 +143,7 @@ public class SocketIOService {
         });
 
         socketIOServer.addEventListener("OnPickUp", JSONObject.class, (client, data, ackRequest) -> {
-            log.info("--------------------------OnPickUp");
+            log.info("-------------------拿起");
 
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
@@ -164,9 +168,10 @@ public class SocketIOService {
                 if (someonePickedUp) {
                     Map<String, Object> map = new HashMap<>();
                     map.put("state", 0);
-                    System.out.println("----------state-0");
                     client.sendEvent("PickedUp", map);
-                } else {
+                    log.info("失败");
+                }
+                else {
                     // 否则，发回成功信息
                     int lastIndex = column.getPlates().size() - 1;
                     plate = column.getPlates().remove(lastIndex);
@@ -181,8 +186,8 @@ public class SocketIOService {
             // 发回成功信息
             Map<String, Object> map = new HashMap<>();
             map.put("state", 1);
-            System.out.println("----------state-1");
             client.sendEvent("PickedUp", map);
+            log.info("成功");
 
             map.clear();
             map.put("username", username);
@@ -197,7 +202,7 @@ public class SocketIOService {
         });
 
         socketIOServer.addEventListener("OnPutDown", JSONObject.class, (client, data, ackRequest) -> {
-            log.info("--------------------------OnPutDown");
+            log.info("-------------------放下");
 
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
@@ -229,12 +234,12 @@ public class SocketIOService {
             // 转发给其他玩家
             sendToOthers("OnPlayerPutDown", uuid, map);
             // 向数据库写入日志
-            UserLog userLog = new UserLog(username, "putDown", getLocalDateTime(), null);
+            UserLog userLog = new UserLog(username, "putDown", getLocalDateTime(), plateIndex);
             userLogRepository.save(userLog);
         });
 
         socketIOServer.addEventListener("OnSendMessage", JSONObject.class, (client, data, ackRequest) -> {
-            log.info("--------------------------OnSendMessage");
+            log.info("-------------------发送消息");
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
             String message = (String) data.get("message");

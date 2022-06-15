@@ -28,11 +28,3 @@ socketio:
   pingTimeout: 6000000
   # Ping消息间隔（毫秒），默认25秒。客户端向服务器发送一条心跳消息间隔
   pingInterval: 25000
-
-#柱子信息
-column:
-  height: 100
-
-#块信息
-plate:
-  height: 30

@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 public class Plate {
     public static final Double BASE_RADIUS = 6.0;
     public static final Double RADIUS_STEP = 2.5;
-    public static final Double HEIGHT = 10.0;
+    public static final Double HEIGHT = 6.0;
 
     private int index;
     private Double radius;
