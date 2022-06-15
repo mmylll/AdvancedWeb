@@ -471,14 +471,6 @@ export default {
                 let plates = this.columns[this.originalColumn].plates;
                 console.log(plates.length)
                 this.player.plate = plates.pop();
-                // console.log("------------------------pickUp()--pop()前")
-                // console.log(plates)
-                //
-                // console.log(plates.length)
-                // console.log(this.columns[columnIndex].plates)
-                // console.log(this.columns[columnIndex].plates.length)
-                // console.log(this.player.plate)
-
                 this.pickedUpPlateObject = scene.getObjectByName(('plate'+this.index));
 
                 this.pickedUpPlateObject.visible = false; // 隐藏该模型
@@ -504,13 +496,8 @@ export default {
 
     // 拿起汉诺塔事件
     pickUp() {
-      console.log("pickUp()")
-      console.log(this.columns)
-
       if (this.player.plate == null) {  // 该玩家还未拿起块
         // 玩家的位置
-        console.log("player:")
-        console.log(this.player)
         let playerPosition = new THREE.Vector3(this.player.x, this.player.y, 0);
         let index = -1; // 要拿起的汉诺塔的编号
         let columnIndex;
@@ -529,39 +516,13 @@ export default {
         // 编号大于0，表示拿到了汉诺塔
         if (index >= 0) {
           socket.emit('OnPickUp', {username: this.player.username, columnIndex: columnIndex, index: index});
-
-          socket.on('PickedUp', (res) => {
-            console.log("检测pickedup")
-            console .log(res)
-            let state = res.state;
-            if (state){
-              this.isPicked = true;
-              let plates = this.columns[columnIndex].plates;
-              console.log(plates.length)
-              this.player.plate = plates.pop();
-              // console.log("------------------------pickUp()--pop()前")
-              // console.log(plates)
-              //
-              // console.log(plates.length)
-              // console.log(this.columns[columnIndex].plates)
-              // console.log(this.columns[columnIndex].plates.length)
-              // console.log(this.player.plate)
-
-              this.originalColumn = columnIndex;
-              this.pickedUpPlateObject = scene.getObjectByName(('plate'+index));
-
-              this.pickedUpPlateObject.visible = false; // 隐藏该模型
-            }
-          })
+          this.originalColumn = columnIndex;
+          this.index = index;
         }
       }
     },
     // 放下汉诺塔事件
     putDown() {
-      console.log("puDown()")
-      console.log(this.columns[0].plates)
-      console.log(this.columns[0].plates.length)
-
       if (this.player.plate != null) { // 该角色有一个汉诺塔
         let rolePosition = new THREE.Vector3(this.player.x, this.player.y, 0);
         console.log("enter putdown:")
@@ -584,9 +545,6 @@ export default {
         console.log("username: " + this.player.username + "columnIndex: " + columnIndex + "index: " + index)
         // 更新玩家信息
         let plate = this.player.plate;
-        // console.log("player.plate:")
-        // console.log(plate)
-        // console.log(this.pickedUpPlateObject)
         this.player.plate = null; // 更新该玩家信息
         // 更新柱子上汉诺塔放下的情况
         let column = scene.getObjectByName('column' + columnIndex);
