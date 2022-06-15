@@ -476,6 +476,28 @@ export default {
         console.log(this.columns[columnIndex].plates.length)
         player.plate = null; // 更新该玩家信息
       })
+        socket.on('PickedUp', (res) => {
+            console.log("检测pickedup")
+            console .log(res)
+            let state = res.state;
+            if (state){
+                this.isPicked = true;
+                let plates = this.columns[this.originalColumn].plates;
+                console.log(plates.length)
+                this.player.plate = plates.pop();
+                // console.log("------------------------pickUp()--pop()前")
+                // console.log(plates)
+                //
+                // console.log(plates.length)
+                // console.log(this.columns[columnIndex].plates)
+                // console.log(this.columns[columnIndex].plates.length)
+                // console.log(this.player.plate)
+
+                this.pickedUpPlateObject = scene.getObjectByName(('plate'+this.index));
+
+                this.pickedUpPlateObject.visible = false; // 隐藏该模型
+            }
+        })
     },
     updatePositionAndRotation() {
       if (this.role !== undefined) {
@@ -521,30 +543,8 @@ export default {
         // 编号大于0，表示拿到了汉诺塔
         if (index >= 0) {
           socket.emit('OnPickUp', {username: this.player.username, columnIndex: columnIndex, index: index});
-
-          socket.on('PickedUp', (res) => {
-            console.log("检测pickedup")
-            console .log(res)
-            let state = res.state;
-            if (state){
-              this.isPicked = true;
-              let plates = this.columns[columnIndex].plates;
-              console.log(plates.length)
-              this.player.plate = plates.pop();
-              // console.log("------------------------pickUp()--pop()前")
-              // console.log(plates)
-              //
-              // console.log(plates.length)
-              // console.log(this.columns[columnIndex].plates)
-              // console.log(this.columns[columnIndex].plates.length)
-              // console.log(this.player.plate)
-
-              this.originalColumn = columnIndex;
-              this.pickedUpPlateObject = scene.getObjectByName(('plate'+index));
-
-              this.pickedUpPlateObject.visible = false; // 隐藏该模型
-            }
-          })
+          this.index = index;
+          this.originalColumn = columnIndex;
         }
       }
     },
@@ -608,6 +608,7 @@ export default {
       socket.emit('OnUpdate', this.player)
     })
     this.animate()
+
   }
 
 
