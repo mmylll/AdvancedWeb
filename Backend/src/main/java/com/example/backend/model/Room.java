@@ -15,6 +15,7 @@ public class Room {
 
     private List<Column> columns;
     private Map<UUID, Player> players;
+    private boolean someonePickUp; // Whether someone has picked up a plate
 
     private static Room room;
 

@@ -88,6 +88,8 @@ public class SocketIOService {
 
             // 添加到玩家列表
             room.getPlayers().put(uuid, player);
+            log.info("玩家加入：" + player.getUsername());
+
             Map<String, Object> map = new HashMap<>();
             map.put("player", player);
             // 转发新加入的玩家给其他玩家
@@ -137,7 +139,7 @@ public class SocketIOService {
         });
 
         socketIOServer.addEventListener("OnPickUp", JSONObject.class, (client, data, ackRequest) -> {
-            System.out.println("--------------------------onpickup");
+            log.info("--------------------------OnPickUp");
 
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
@@ -147,34 +149,54 @@ public class SocketIOService {
                 return;
             }
 
-            Integer plate = (Integer) data.get("index");
-            player.setPlate(plate);
+            Integer plateIndex = (Integer) data.get("index");
+            player.setPlate(plateIndex);
 
             Integer columnIndex = (Integer) data.get("columnIndex");
             Column column = room.getColumns().get(columnIndex);
-            Plate plate1 = null;
-            int index = 0;
-            // 更新柱子的plates
-            synchronized (room.getColumns().get(columnIndex)) {
-                index = column.getPlates().size() - 1;
-                plate1 = column.getPlates().remove(index);
-            }
+            Plate plate = null;
 
+            boolean someonePickedUp;
+            // 更新柱子的plates
+            synchronized (room) {
+                // 已经有人拿起plate，放弃pickUp并发回错误信息，释放锁之后结束处理
+                someonePickedUp = room.isSomeonePickUp();
+                if (someonePickedUp) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("state", 0);
+                    client.sendEvent("PickedUp", map);
+                }
+                else {
+                    // 否则，发回成功信息
+                    int lastIndex = column.getPlates().size() - 1;
+                    plate = column.getPlates().remove(lastIndex);
+                }
+            }
+            if (someonePickedUp)
+                return;
+
+            log.info("username:" + username + ", plateIndex:" + plateIndex + ", columnIndex:" + columnIndex);
+            log.info("plate:" + plate);
+
+            // 发回成功信息
             Map<String, Object> map = new HashMap<>();
+            map.put("state", 1);
+            client.sendEvent("PickedUp", map);
+
+            map.clear();
             map.put("username", username);
-            map.put("index", plate);
+            map.put("index", plateIndex);
             map.put("columnIndex",columnIndex);
-            map.put("plate", plate1);
+            map.put("plate", plate);
             // 转发被更新的玩家给其他玩家
             sendToOthers("OnPlayerPickUp", uuid, map);
             // 向数据库写入日志
-            UserLog userLog = new UserLog(username, "pickUp", getLocalDateTime(), plate);
+            UserLog userLog = new UserLog(username, "pickUp", getLocalDateTime(), plateIndex);
             userLogRepository.save(userLog);
         });
 
         socketIOServer.addEventListener("OnPutDown", JSONObject.class, (client, data, ackRequest) -> {
-            System.out.println("--------------------------onputdown");
-
+            log.info("--------------------------OnPutDown");
 
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
@@ -192,9 +214,10 @@ public class SocketIOService {
             Column column = room.getColumns().get(columnIndex);
             // 更新柱子的plates
             synchronized (room.getColumns().get(columnIndex)) {
-                //column.getPlates().add(0, plate);
                 column.getPlates().add(plate);
             }
+            log.info("username:" + username + ", plateIndex:" + plateIndex + ", columnIndex:" + columnIndex);
+            log.info("plate:" + plate);
 
             Map<String, Object> map = new HashMap<>();
             map.put("username", username);
@@ -209,9 +232,12 @@ public class SocketIOService {
         });
 
         socketIOServer.addEventListener("OnSendMessage", JSONObject.class, (client, data, ackRequest) -> {
+            log.info("--------------------------OnSendMessage");
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
             String message = client.getHandshakeData().getSingleUrlParam("message");
+            log.info("玩家" + username + ": " + message);
+
             Map<String, Object> map = new HashMap<>();
             map.put("username", username);
             map.put("message", message);
