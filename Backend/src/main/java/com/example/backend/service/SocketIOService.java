@@ -164,6 +164,7 @@ public class SocketIOService {
                 if (someonePickedUp) {
                     Map<String, Object> map = new HashMap<>();
                     map.put("state", 0);
+                    System.out.println("----------state-0");
                     client.sendEvent("PickedUp", map);
                 } else {
                     // 否则，发回成功信息
@@ -180,6 +181,7 @@ public class SocketIOService {
             // 发回成功信息
             Map<String, Object> map = new HashMap<>();
             map.put("state", 1);
+            System.out.println("----------state-1");
             client.sendEvent("PickedUp", map);
 
             map.clear();

@@ -253,8 +253,8 @@ export default {
         this.currentAction.play();
         scene.add(this.role);
         this.firstPersonControl.role = this.role
-        console.log('set role')
         this.updatePositionAndRotation()
+        console.log(this.role)
 
       }, undefined, function (e) {
         console.error(e);
@@ -326,7 +326,6 @@ export default {
       console.log(this.columns)
 
       this.axios.get('/Join').then((res) => {
-        console.log('get roominfo callback')
         this.columns = res.data.data.columns;
         //this.columns = res.data.data.columns;
         console.log('getroominfo:  columns')
@@ -463,6 +462,28 @@ export default {
         console.log(this.columns[columnIndex].plates.length)
         player.plate = null; // 更新该玩家信息
       })
+        socket.on('PickedUp', (res) => {
+            console.log("检测pickedup")
+            console .log(res)
+            let state = res.state;
+            if (state){
+                this.isPicked = true;
+                let plates = this.columns[this.originalColumn].plates;
+                console.log(plates.length)
+                this.player.plate = plates.pop();
+                // console.log("------------------------pickUp()--pop()前")
+                // console.log(plates)
+                //
+                // console.log(plates.length)
+                // console.log(this.columns[columnIndex].plates)
+                // console.log(this.columns[columnIndex].plates.length)
+                // console.log(this.player.plate)
+
+                this.pickedUpPlateObject = scene.getObjectByName(('plate'+this.index));
+
+                this.pickedUpPlateObject.visible = false; // 隐藏该模型
+            }
+        })
     },
     updatePositionAndRotation() {
       if (this.role !== undefined) {
@@ -511,9 +532,9 @@ export default {
 
           socket.on('PickedUp', (res) => {
             console.log("检测pickedup")
-            console.log(res)
+            console .log(res)
             let state = res.state;
-            if (state) {
+            if (state){
               this.isPicked = true;
               let plates = this.columns[columnIndex].plates;
               console.log(plates.length)
@@ -527,7 +548,7 @@ export default {
               // console.log(this.player.plate)
 
               this.originalColumn = columnIndex;
-              this.pickedUpPlateObject = scene.getObjectByName(('plate' + index));
+              this.pickedUpPlateObject = scene.getObjectByName(('plate'+index));
 
               this.pickedUpPlateObject.visible = false; // 隐藏该模型
             }
