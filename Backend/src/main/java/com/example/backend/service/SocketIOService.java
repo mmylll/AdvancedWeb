@@ -213,8 +213,9 @@ public class SocketIOService {
             Integer columnIndex = (Integer) data.get("columnIndex");
             Column column = room.getColumns().get(columnIndex);
             // 更新柱子的plates
-            synchronized (room.getColumns().get(columnIndex)) {
+            synchronized (room) {
                 column.getPlates().add(plate);
+                room.setSomeonePickUp(false);
             }
             log.info("username:" + username + ", plateIndex:" + plateIndex + ", columnIndex:" + columnIndex);
             log.info("plate:" + plate);
