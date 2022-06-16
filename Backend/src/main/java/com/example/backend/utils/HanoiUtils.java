@@ -4,6 +4,7 @@ import com.example.backend.model.Column;
 import com.example.backend.model.Plate;
 import com.example.backend.model.Room;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class HanoiUtils {
@@ -11,7 +12,8 @@ public class HanoiUtils {
         Room room = Room.getRoom();
 
         // 初始化柱子
-        List<Column> columns = room.getColumns();
+        List<Column> columns = new ArrayList<>();
+        room.setColumns(columns);
         for (int i = 0; i < Room.COLUMN_NUMBER; i++) {
             columns.add(new Column());
         }
