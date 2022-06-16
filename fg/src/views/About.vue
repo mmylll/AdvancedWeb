@@ -1,182 +1,254 @@
 <template>
   <div class="about">
-    <div class="manu">
-      <div class="left-image"></div>
-      <router-link to="/room">
-        <span class="web3d">汉诺塔</span>
-      </router-link>
-      <router-link to="/about">
-        <span class="message">个人信息</span>
-      </router-link>
-      <span class="exit" @click="admin" v-if="this.$store.state.username === 'administer'">管理员</span>
-      <router-link to="/">
-        <span class="exit">退出</span>
-      </router-link>
-      <el-dialog
-              v-model="quitDialog"
-              title="退出"
-              width="30%"
-              center
-              id="quit">
-        <div>
-          <el-button @click="quit">确定</el-button>
-          <el-button @click="quitDialog=false">取消</el-button>
-        </div>
-      </el-dialog>
-    </div>
-    <div class="info">
-      <h2>个人信息展示</h2>
-      <div class="head">
-        <div class="img" id="scene">
-        </div>
-        <div class="username">
-        <ul>
-          <li>
-            <div class="title">用户名：</div>
-            <input v-model="username" disabled>
-          </li>
-          <li>
-            <div class="title">邮箱：</div>
-            <input placeholder="31231@qq.com" disabled>
-          </li>
-        </ul>
-      </div>
-      </div>
+    <el-menu
+        default-active="2"
+        class="el-menu-demo"
+        mode="horizontal"
+        @select="handleSelect"
+    >
+      <el-menu-item index="1">汉诺塔</el-menu-item>
+      <el-menu-item index="2">个人信息</el-menu-item>
+      <el-menu-item index="3" v-if="this.$store.state.username === 'administer'">设置参数</el-menu-item>
+      <el-menu-item index="4">退出</el-menu-item>
+    </el-menu>
 
-      <div class="log">
-        <h2>操作记录：</h2>
-        <p v-for="(log, index) in logs" :id="index">操作类型： {{log.type}}   操作记录： {{log.date}}</p>
-      </div>
+    <el-dialog
+        v-model="dialogVisible"
+        title="设置参数"
+        width="30%">
+      <h2>设置参数</h2>
+      <el-input v-model="plateNumber" placeholder="输入参数"/>
+      <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="setPlateNumber"
+        >确定</el-button>
+      </span>
+      </template>
+    </el-dialog>
+
+    <div class="info">
+      <h2>个人信息</h2>
+      <el-container>
+        <el-aside width="50%">
+          <div class="img" id="scene">
+          </div>
+        </el-aside>
+        <el-main>
+          <el-card class="box-card">
+            <template #header>
+              <div class="card-header">
+                <span>个人信息</span>
+              </div>
+            </template>
+            <div class="text item"><strong>用户名：</strong>{{ username }}</div>
+            <div class="text item"><strong>邮箱：</strong>{{ email }}</div>
+          </el-card>
+        </el-main>
+      </el-container>
+    </div>
+
+
+    <div class="log">
+      <h2>操作记录</h2>
+      <el-table :data="logs" stripe style="width: 100%" height="350px">
+        <el-table-column prop="username" label="用户"/>
+        <el-table-column prop='type' label="操作类型"/>
+        <el-table-column prop='date' label="时间"/>
+        <el-table-column prop="plate" label="操作圆盘对象"/>
+      </el-table>
+      <!--      <p v-for="(log, index) in logs" :id="index">操作类型： {{ log.type }} 操作记录： {{ log.date }}</p>-->
     </div>
   </div>
 </template>
 <script>
 import Base3d from "../../public/js/showRobot";
+import qs from "qs";
+
 export default {
   name: 'About',
   data() {
     return {
       username: this.$store.state.username,
+      email: '',
       logs: [],
       robot3D: {},
-      quitDialog: false
+      dialogVisible: false,
+      plateNumber: ''
     }
   },
   methods: {
-    getLog(){
-      this.axios.get('/Log?username='+this.$store.state.username).then((res) => {
-        this.logs = res.data.data;
+    getLog() {
+      this.axios.get('/Log?username=' + this.$store.state.username).then((res) => {
+        for (let log of res.data.data) {
+          log.date = log.date[0] + '-' + log.date[1] + '-' + log.date[2] + ' ' + log.date[3] + ':' + log.date[4] + ':' + log.date[5]
+          this.logs.push(log)
+        }
       })
     },
-    admin(){
-      this.quitDialog = true;
+    setPlateNumber() {
+      this.axios.post('/Set', qs.stringify({number: Number.parseInt(this.plateNumber)})).then(() => {
+        this.$message({
+          type: 'success',
+          message: '设置成功'
+        })
+        this.dialogVisible = false
+      }).catch(() => {
+        this.$message({
+          type: 'warning',
+          message: '设置失败，有玩家在房间内'
+        })
+      })
+    },
+    handleSelect(key) {
+      if (key === '1') {
+        this.$router.replace('/room')
+      } else if (key === '2') {
+        this.$router.replace('/About')
+      } else if (key === '3') {
+        this.dialogVisible = true;
+      } else {
+        localStorage.clear();
+        this.$store.state.username = null;
+        this.$store.state.token = null
+        this.$router.replace('/')
+      }
+    },
+    getInfo() {
+      this.axios.get('/Info?username=' + this.username).then((res) => {
+        this.email = res.data.data.email
+      })
     }
   },
   mounted() {
+    this.getInfo();
     this.getLog();
     this.robot3D = new Base3d('#scene');
   }
 }
 </script>
 <style>
-.about {
-  color: #2c3e50;
-  background-image: url("../assets/skyBox/back.jpg");
-  background-size: 100%;
-  opacity: 1;
-}
-
-.manu {
-  width: 100%;
-  height: 3.4rem;
-  background-color: #2c3e50;
-  text-align: center;
-}
-
-span {
-  color: white;
-  display: block;
-  float: left;
-  margin: 0 auto;
-  padding: 1rem;
-}
-
-span:hover {
-  cursor: default;
-}
-
-span:hover {
-  background-position: 0 -30px;
-  background-color: #999999;
-}
-
-.web3d {
-  margin-left: 15%;
-}
-
-.message {
-  border: chocolate solid 1px;
-  opacity: 97%;
-  border-radius: 10px;
-  color: darkorange;
-}
-
 .info {
-  width: 70%;
-  margin: 0 auto;
-  border: #2c3e50 solid 1px;
-  background-image: none;
-  background-color: white;
+  width: 60%;
+  margin: 10px auto;
+  border: #2c3e50 solid 2px;
+  border-radius: 8px;
 }
 
-.head {
-  align-content: center;
-  width: 100%;
-  height: 20rem;
-  border: darkblue solid 1px;
-  border-radius: 10px;
+.item {
+  text-align: left;
+  margin: 20px auto;
 }
+
+.box-card {
+  height: 90%;
+}
+
+.log {
+  width: 60%;
+  margin: 10px auto;
+  padding: 10px;
+  border: #2c3e50 solid 2px;
+  border-radius: 8px;
+}
+
+/*.about {*/
+/*  color: #2c3e50;*/
+/*  background-image: url("../assets/skyBox/back.jpg");*/
+/*  background-size: 100%;*/
+/*  opacity: 1;*/
+/*}*/
+
+/*.manu {*/
+/*  width: 100%;*/
+/*  height: 3.4rem;*/
+/*  background-color: #2c3e50;*/
+/*  text-align: center;*/
+/*}*/
+
+/*!*span {*!*/
+/*!*  color: white;*!*/
+/*!*  display: block;*!*/
+/*!*  float: left;*!*/
+/*!*  margin: 0 auto;*!*/
+/*!*  padding: 1rem;*!*/
+/*!*}*!*/
+
+/*span:hover {*/
+/*  cursor: default;*/
+/*}*/
+
+/*!*span:hover {*!*/
+/*!*  background-position: 0 -30px;*!*/
+/*!*  background-color: #999999;*!*/
+/*!*}*!*/
+
+/*.web3d {*/
+/*  margin-left: 15%;*/
+/*}*/
+
+/*.message {*/
+/*  border: chocolate solid 1px;*/
+/*  opacity: 97%;*/
+/*  border-radius: 10px;*/
+/*  color: darkorange;*/
+/*}*/
+
+/*.info {*/
+/*  width: 70%;*/
+/*  margin: 0 auto;*/
+/*  border: #2c3e50 solid 1px;*/
+/*  background-image: none;*/
+/*  background-color: white;*/
+/*}*/
+
+/*.head {*/
+/*  align-content: center;*/
+/*  width: 100%;*/
+/*  height: 20rem;*/
+/*  border: darkblue solid 1px;*/
+/*  border-radius: 10px;*/
+/*}*/
 
 .img {
-  display: block;
-  border: #2c3e50 solid 1px;
-  width: 13rem;
-  height: 13rem;
-  float: left;
-  margin: 3rem 3rem 3rem 7rem;
-
+  /*border: #2c3e50 solid 1px;*/
+  width: 300px;
+  height: 300px;
+  margin: 10px auto;
+  /*float: left;*/
+  /*margin: 3rem 3rem 3rem 7rem;*/
 }
 
-.intro {
-  margin: 3rem 3rem 3rem 0rem;
-  display: block;
-  float: left;
-  width: 30rem;
-  height: 13rem;
-  border: #2c3e50 solid 1px;
-}
+/*.intro {*/
+/*  margin: 3rem 3rem 3rem 0rem;*/
+/*  display: block;*/
+/*  float: left;*/
+/*  width: 30rem;*/
+/*  height: 13rem;*/
+/*  border: #2c3e50 solid 1px;*/
+/*}*/
 
-li {
-  display: block;
-  width: 90%;
-  font-size: 1rem;
-}
+/*!*li {*!*/
+/*!*  display: block;*!*/
+/*!*  width: 90%;*!*/
+/*!*  font-size: 1rem;*!*/
+/*!*}*!*/
 
-.title {
-  text-align: left;
-  font-family: "Arial Black";
-}
+/*.title {*/
+/*  text-align: left;*/
+/*  font-family: "Arial Black";*/
+/*}*/
 
-input {
-  width: 100%;
-  font-size: 1rem;
-}
+/*input {*/
+/*  width: 100%;*/
+/*  font-size: 1rem;*/
+/*}*/
 
-.game {
-  border-radius: 10px;
-  height: 20rem;
-  border: #2c3e50 solid 1px;
-}
+/*.game {*/
+/*  border-radius: 10px;*/
+/*  height: 20rem;*/
+/*  border: #2c3e50 solid 1px;*/
+/*}*/
 </style>
 
 

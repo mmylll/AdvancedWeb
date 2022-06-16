@@ -96,7 +96,6 @@ public class SocketIOService {
             map.put("player", player);
             // 转发新加入的玩家给其他玩家
             sendToOthers("OnPlayerJoin", uuid, map);
-
             // 向数据库写入日志
             UserLog userLog = new UserLog(username, "join", getLocalDateTime(), null);
             userLogRepository.save(userLog);

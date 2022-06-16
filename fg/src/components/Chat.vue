@@ -25,11 +25,12 @@ export default {
     onKeyBoard() {
       document.onkeydown = (e) => {
         if (e.code === 'Enter') {
-          this.isShow = !this.isShow
-          if (this.isShow) {
+
+          if (!this.isShow) {
+            this.isShow = true
             this.$refs.messageInput.focus()
           }
-          if (!this.isShow && this.message !== '') {
+          if (this.isShow && this.message !== '') {
             let messageObject = {
               username: this.$store.state.username,
               message: this.message
@@ -39,6 +40,7 @@ export default {
             socket.emit('OnSendMessage', messageObject, () => {
               this.messages.push(messageObject)
               this.message = '';
+              this.isShow = false
             });
           }
         }

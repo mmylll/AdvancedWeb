@@ -158,6 +158,7 @@ export default {
           console.log(plate)
           let plateMesh = new THREE.Mesh(plateGeometry, plateMaterial);
           scene.add(plateMesh)
+          console.log(plate.index % 3)
           plateMesh.name = 'plate' + plate.index;
           plateMesh.position.set(...cylinder.position);
           plateMesh.position.y = height;
@@ -471,20 +472,20 @@ export default {
         console.log(this.columns[columnIndex].plates.length)
         player.plate = null; // 更新该玩家信息
       })
-        socket.on('PickedUp', (res) => {
-            console.log("检测pickedup")
-            console .log(res)
-            let state = res.state;
-            if (state){
-                this.isPicked = true;
-                let plates = this.columns[this.originalColumn].plates;
-                console.log(plates.length)
-                this.player.plate = plates.pop();
-                this.pickedUpPlateObject = scene.getObjectByName(('plate'+this.index));
+      socket.on('PickedUp', (res) => {
+        console.log("检测pickedup")
+        console.log(res)
+        let state = res.state;
+        if (state) {
+          this.isPicked = true;
+          let plates = this.columns[this.originalColumn].plates;
+          console.log(plates.length)
+          this.player.plate = plates.pop();
+          this.pickedUpPlateObject = scene.getObjectByName(('plate' + this.index));
 
-                this.pickedUpPlateObject.visible = false; // 隐藏该模型
-            }
-        })
+          this.pickedUpPlateObject.visible = false; // 隐藏该模型
+        }
+      })
     },
     updatePositionAndRotation() {
       if (this.role !== undefined) {
