@@ -54,25 +54,31 @@
       <el-table :data="logs" stripe style="width: 100%" height="350px">
         <el-table-column prop="username" label="用户"/>
         <el-table-column prop='type' label="操作类型"
-          :filters="[
+                         :filters="[
               {text: '加入', value: 'join'},
               {text: '离开', value: 'leave'},
               {text: '拿起', value: 'pickUp'},
               {text: '放下', value: 'putDown'}
           ]"
-          :filter-method="filterType"/>
+                         :filter-method="filterType"/>
         <el-table-column prop='date' label="时间"/>
         <el-table-column prop="plate" label="操作圆盘对象"
-          :filters="plate_filter" :formatter="format"
-          :filter-method="filterPlate"/>
+                         :filters="plate_filter" :formatter="format"
+                         :filter-method="filterPlate"/>
       </el-table>
       <!--      <p v-for="(log, index) in logs" :id="index">操作类型： {{ log.type }} 操作记录： {{ log.date }}</p>-->
+    </div>
+
+    <div class="echarts">
+      <div class="e-item" id="e-one"></div>
+      <div class="e-item" id="e-two"></div>
     </div>
   </div>
 </template>
 <script>
 import Base3d from "../../public/js/showRobot";
 import qs from "qs";
+import * as echarts from 'echarts'
 
 export default {
   name: 'About',
@@ -89,7 +95,41 @@ export default {
         {text: '0', value: 0},
         {text: '1', value: 1},
         {text: '2', value: 2}
-      ]
+      ],
+      optionOne: {
+        title: {
+          text: '操作记录条形图'
+        },
+        tooltip: {},
+        legend: {
+          data: ['次数']
+        },
+        xAxis: {
+          data: ["join", "leave", 'pickUp', "putDown"]
+        },
+        yAxis: {},
+        series: [{
+          name: '次数',
+          type: 'bar',
+          width: '20',
+          data: [0, 0, 0, 0]
+        }]
+      },
+      optionTwo: {
+        title: {
+          text: '操作记录饼状图'
+        },
+        tooltip: {},
+        series: [{
+          name: '次数',
+          type: 'pie',
+          radius: '55%',
+          data: [{value: 0, name: 'join'}, {value: 0, name: 'leave'}, {value: 0, name: 'pickUp'}, {
+            value: 0,
+            name: 'putDown'
+          }]
+        }]
+      }
     }
   },
   methods: {
@@ -99,6 +139,7 @@ export default {
           log.date = log.date[0] + '-' + log.date[1] + '-' + log.date[2] + ' ' + log.date[3] + ':' + log.date[4] + ':' + log.date[5]
           this.logs.push(log)
         }
+        this.count()
       })
     },
     setPlateNumber() {
@@ -149,11 +190,40 @@ export default {
     },
     filterPlate(value, row) {
       return row.plate === value;
+    },
+
+    count() {
+
+      let map = {
+        'join': 0,
+        'leave': 1,
+        'pickUp': 2,
+        'putDown': 3
+      }
+      for (let log of this.logs) {
+        this.optionOne.series[0].data[map[log.type]]++;
+        this.optionTwo.series[0].data[map[log.type]].value++;
+      }
+      this.paintCharts()
+      // let chart1 = echarts.init(document.getElementById('e-one'))
+      // chart1.setOption(this.optionOne)
+      //
+      // console.log(this.optionOne)
+    },
+    paintCharts() {
+      let chart1 = echarts.init(document.getElementById('e-one'), null, {
+        width: 600,
+        height: 400
+      })
+      chart1.setOption(this.optionOne)
+      let chart2 = echarts.init(document.getElementById('e-two'))
+      chart2.setOption(this.optionTwo)
     }
   },
   mounted() {
     this.getInfo();
     this.getLog();
+    this.paintCharts();
     this.robot3D = new Base3d('#scene');
   }
 }
@@ -179,6 +249,21 @@ export default {
   width: 60%;
   margin: 10px auto;
   padding: 10px;
+  border: #2c3e50 solid 2px;
+  border-radius: 8px;
+}
+
+.e-item {
+  width: 45%;
+  height: 400px;
+}
+
+.echarts {
+  width: 65%;
+  display: flex;
+  padding: 10px;
+  margin: 10px auto;
+  justify-content: space-between;
   border: #2c3e50 solid 2px;
   border-radius: 8px;
 }
