@@ -138,6 +138,17 @@ class FirstPersonControls {
         document.addEventListener('keydown', this.onKeyDown.bind(this), false);
         document.addEventListener('keyup', this.onKeyUp.bind(this), false);
     }
+
+    disconnect() {
+        this.domElement.removeEventListener('click', this.domElement.requestPointerLock);
+        // 在函数后面添加bind(this)的目的是什么
+        document.removeEventListener('pointerlockchange', this.onPointerlockChange.bind(this), false);
+        document.removeEventListener('pointerlockerror', this.onPointerlockError.bind(this), false);
+        document.removeEventListener('mousemove', this.onMouseMove.bind(this), false);
+        //keybind
+        document.removeEventListener('keydown', this.onKeyDown.bind(this), false);
+        document.removeEventListener('keyup', this.onKeyUp.bind(this), false);
+    }
 }
 
 export default FirstPersonControls;
