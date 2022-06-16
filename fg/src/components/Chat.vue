@@ -11,6 +11,7 @@
 
 <script>
 import socket from "@/socket";
+import Web3D from "@/components/Web3D";
 
 export default {
   name: "Chat",
@@ -25,9 +26,9 @@ export default {
     onKeyBoard() {
       document.onkeydown = (e) => {
         if (e.code === 'Enter') {
-
           if (!this.isShow) {
             this.isShow = true
+            Web3D.data().firstPersonControl.disconnect()
             this.$refs.messageInput.focus()
           }
           if (this.isShow && this.message !== '') {
@@ -35,12 +36,12 @@ export default {
               username: this.$store.state.username,
               message: this.message
             }
-            console.log('send mesage')
             // 发送消息
             socket.emit('OnSendMessage', messageObject, () => {
               this.messages.push(messageObject)
               this.message = '';
               this.isShow = false
+              Web3D.data().firstPersonControl.connect()
             });
           }
         }

@@ -143,7 +143,6 @@ public class SocketIOService {
 
         socketIOServer.addEventListener("OnPickUp", JSONObject.class, (client, data, ackRequest) -> {
             log.info("-------------------拿起");
-
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
             Player player = room.getPlayers().get(uuid);
@@ -169,8 +168,7 @@ public class SocketIOService {
                     map.put("state", 0);
                     client.sendEvent("PickedUp", map);
                     log.info("失败");
-                }
-                else {
+                } else {
                     // 否则，发回成功信息
                     int lastIndex = column.getPlates().size() - 1;
                     plate = column.getPlates().remove(lastIndex);

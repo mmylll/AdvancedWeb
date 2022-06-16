@@ -24,9 +24,7 @@ import * as THREE from 'three'
 import FirstPersonControls from "../../public/js/FirstPersonControls";
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader'
 import {DRACOLoader} from 'three/examples/jsm/loaders/DRACOLoader'
-//import socket from "@/socket";
 import {getCurrentInstance} from "vue";
-import io from "socket.io-client";
 import socket from "@/socket";
 
 let scene, role
@@ -61,16 +59,7 @@ export default {
         ry: Math.PI,
         plate: null
       },
-      //role: null,
       stateList: {},
-      // actionMap: {
-      //   up: {direction: 'up', rotation: Math.PI, axes: 'z'},
-      //   down: {direction: 'down', rotation: 0, axes: 'z'},
-      //   left: {direction: 'left', rotation: -Math.PI / 2, axes: 'x'},
-      //   right: {direction: 'right', rotation: Math.PI / 2, axes: 'x'}
-      // },
-      // nopeAction: {direction: null},
-      // nextAction: {direction: 'down', rotation: 0},
       clock: null,
       mixer: null,
       currentAction: null,
@@ -93,14 +82,12 @@ export default {
       isPicked: false,
       originColumn: -1, // 被拿起的块的原来的柱子编号
       copyColumns: [],
-      colors:["#ff0000","#00ff00","#0000ff"]
+      colors: ["#ff0000", "#00ff00", "#0000ff"],
+      inputing: false
     }
   },
   methods: {
     init() {
-      console.log("init()" + new Date())
-      console.log(this.columns)
-
       scene = new THREE.Scene()
       this.render = new THREE.WebGLRenderer({antialias: true})
       this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
@@ -120,17 +107,13 @@ export default {
       this.renderCanvas()
     },
     quit() {
-      console.log('quiting...')
       if (this.player.plate !== null) {
-        console.log('plate on hand')
         this.$message({
           message: '必须放下持有的圆盘，才能离开场景',
           type: 'error'
         })
       } else {
-        console.log('no plate on hand')
         socket.disconnect();
-        console.log('quited')
         this.quitDialog = true;
         this.$router.replace('/About')
       }
@@ -138,12 +121,9 @@ export default {
     },
 
     addCylinder() {
-      console.log("addCylinder()")
-      console.log(this.columns)
-
       let geometry, cylinder
       let material = new THREE.MeshBasicMaterial({color: 0xC4C2C0})
-         // plateMaterial = new THREE.MeshLambertMaterial({color: 0xffff00})
+      // plateMaterial = new THREE.MeshLambertMaterial({color: 0xffff00})
       for (let i = 0; i < this.columns.length; i++) {
         let column = this.columns[i];
         geometry = new THREE.CylinderGeometry(5, 5, 100.0, 32);
@@ -154,12 +134,9 @@ export default {
         let height = 3.0;
         for (let plate of column.plates) {
           let plateGeometry = new THREE.CylinderGeometry(plate.radius, plate.radius, plate.height, 32);
-          let plateMaterial = new THREE.MeshLambertMaterial({color: this.colors[plate.index%3]})
-          console.log("------")
-          console.log(plate)
+          let plateMaterial = new THREE.MeshLambertMaterial({color: this.colors[plate.index % 3]})
           let plateMesh = new THREE.Mesh(plateGeometry, plateMaterial);
           scene.add(plateMesh)
-          console.log(plate.index % 3)
           plateMesh.name = 'plate' + plate.index;
           plateMesh.position.set(...cylinder.position);
           plateMesh.position.y = height;
@@ -233,8 +210,7 @@ export default {
     },
     // 创建人物
     createRole() {
-      console.log("createRole()")
-      console.log(this.columns)
+
 
       this.loader = new GLTFLoader()
       this.dracoLoader = new DRACOLoader()
@@ -243,7 +219,6 @@ export default {
       this.loader.setDRACOLoader(this.dracoLoader)
 
       this.loader.load('3D/RobotExpressive.glb', gltf => {
-        console.log('create role call back')
         this.role = gltf.scene
         this.role.position.y = 0
         this.role.scale.set(7, 7, 7)// 设置模型大小
@@ -261,8 +236,6 @@ export default {
         scene.add(this.role);
         this.firstPersonControl.role = this.role
         this.updatePositionAndRotation()
-        console.log(this.role)
-
       }, undefined, function (e) {
         console.error(e);
       });
@@ -270,7 +243,6 @@ export default {
     keyPressed(event) {
       if (event.keyCode === 81) {
         this.quitDialog = true;
-        console.log(this.quitDialog)
       } else if (event.keyCode === 32) { // 当按下空格
         if (!this.isPicked) { // 还没有人拿汉诺塔
           this.pickUp();
@@ -287,7 +259,6 @@ export default {
         }
       } else if (event.keyCode !== 81) {
         this.lastkey = null;
-        this.nextAction = this.nopeAction;
         this.fadeToAction('Standing', 0.2);
       }
     },
@@ -309,9 +280,6 @@ export default {
       }
     },
     renderOtherPlayer() {
-      console.log("renderOtherPlayer()")
-      console.log(this.columns)
-
       for (let player of this.otherPlayer) {
         this.renderAPlayer(player);
       }
@@ -329,14 +297,8 @@ export default {
       })
     },
     getRoomInfo() {
-      console.log("getRoomInfo()")
-      console.log(this.columns)
-
       this.axios.get('/Join').then((res) => {
         this.columns = res.data.data.columns;
-        //this.columns = res.data.data.columns;
-        console.log('getroominfo:  columns')
-        console.log(this.columns)
         for (let i in res.data.data.players) {
           this.otherPlayer.push(res.data.data.players[i]);
         }
@@ -352,27 +314,8 @@ export default {
       return null
     },
     socketInit() {
-      console.log("socketInit()")
-      console.log(this.columns)
-
-      //io.set('transports', ['websocket', 'xhr-polling', 'jsonp-polling', 'htmlfile', 'flashsocket']);
-      //io.set('origins', '*:*');
-      // socket = io.connect()
-      // socket = io.connect('ws://localhost:10246/', {
-      //   autoConnect: false
-      //   //withCredentials: false,
-      //   //query: {username: 'administer'}
-      //   //extraHeaders: {
-      //   //   'Sec-WebSocket-Version': 13,
-      //   //   'Connection': 'Upgrade',
-      //   //   'Upgrade': 'websocket',
-      //   //   'Sec-WebSocket-Key': '<calculated at runtime>',
-      //   //   'Host': '<calculated at runtime>'
-      //   // }
-      // });
       socket.connect();
       socket.on('connect', () => {
-        console.log(socket.connected)
         this.join();
       })
       socket.on('disconnect', () => {
@@ -381,14 +324,8 @@ export default {
           type: 'success'
         })
       })
-      //socket = io('ws://127.0.0.1:10246', {withCredentials: false, query: {username: 'administer'}})
-
       socket.on('OnPlayerJoin', (player) => {
-        console.log("onPlayerJoin")
-        console.log(this.columns)
-
         this.otherPlayer.push(player.player)
-        //console.log(player)
         this.renderAPlayer(player.player);
         this.$message({
           message: player.player.username + "加入了游戏",
@@ -409,15 +346,14 @@ export default {
         }
       })
       socket.on('OnPlayerUpdate', (res) => {
-        console.log("update")
-
         let player = res.player;
         let object = scene.getObjectByName(player.username);
-        console.log(object)
-        object.rotation.set(player.rx, player.ry, player.rz);
-        object.position.set(player.x, player.y, player.z);
-        let otherPlayer = this.getPlayerByName(player.username);
-        Object.assign(otherPlayer, player);
+        if (object) {
+          object.rotation.set(player.rx, player.ry, player.rz);
+          object.position.set(player.x, player.y, player.z);
+          let otherPlayer = this.getPlayerByName(player.username);
+          Object.assign(otherPlayer, player);
+        }
       })
 
 
@@ -441,50 +377,36 @@ export default {
       })
       // 监听用户放下汉诺塔
       socket.on('OnPlayerPutDown', (res) => {
-        console.log("onPlayerPutDown")
-        console.log(res)
-        console.log(this.columns[this.originalColumn].plates.length)
         let username = res.username;
         let columnIndex = res.columnIndex;
         // 更新玩家信息
         let player = this.getPlayerByName(username);
-        console.log("player:")
-        console.log(player)
-        console.log(player.plate)
-
         let plate = res.plate;
 
-        console.log("nan:")
-        console.log(this.columns[columnIndex].plates)
-        console.log(plate)
         // 更新柱子上汉诺塔放下的情况
         let column = scene.getObjectByName('column' + columnIndex);
         this.pickedUpPlateObject.position.set(...column.position);  // 更改该块的位置
-        console.log(this.columns[columnIndex].plates.length)
-        this.pickedUpPlateObject.position.y = this.columns[columnIndex].plates.length * 10 + 3.0;  // 更新块的高度
+        this.pickedUpPlateObject.position.y = this.columns[columnIndex].plates.length * plate.height + 3.0;  // 更新块的高度
         this.columns[columnIndex].plates.push(plate);
         this.pickedUpPlateObject.visible = true;
         //this.pickedUpPlateObject = null;
         this.isPicked = false;
         this.originalColumn = -1;
-        console.log("putdown -----")
-        console.log(this.pickedUpPlateObject)
-        console.log(this.columns[columnIndex].plates)
-        console.log(this.columns[columnIndex].plates.length)
         player.plate = null; // 更新该玩家信息
       })
       socket.on('PickedUp', (res) => {
-        console.log("检测pickedup")
-        console.log(res)
         let state = res.state;
         if (state) {
           this.isPicked = true;
           let plates = this.columns[this.originalColumn].plates;
-          console.log(plates.length)
           this.player.plate = plates.pop();
           this.pickedUpPlateObject = scene.getObjectByName(('plate' + this.index));
-
           this.pickedUpPlateObject.visible = false; // 隐藏该模型
+        } else {
+          this.$message({
+            message: '拿起失败，上层圆盘拿起未被放下',
+            type: 'warning'
+          })
         }
       })
     },
@@ -493,15 +415,11 @@ export default {
         this.player.x = this.role.position.x
         this.player.y = this.role.position.y
         this.player.z = this.role.position.z;
-        //this.player.ry = Math.PI;
         this.player.ry = this.role.rotation.y;
       }
     },
     join() {
-      console.log("join()")
-      console.log(this.columns)
-      //console.log(socket.connected)
-      //console.log(this.player)
+
       socket.emit('OnJoin', this.player)
     },
 
@@ -509,12 +427,12 @@ export default {
     pickUp() {
       if (this.player.plate == null) {  // 该玩家还未拿起块
         // 玩家的位置
-        let playerPosition = new THREE.Vector3(this.player.x, this.player.y, 0);
+        let playerPosition = new THREE.Vector3(this.player.x, 0, this.player.z);
         let index = -1; // 要拿起的汉诺塔的编号
         let columnIndex;
         for (let i = 0; i < this.columns.length; i++) {
           let column = scene.getObjectByName('column' + i);  // 获得柱子的模型
-          let columnPosition = new THREE.Vector3(column.position.x, column.position.y, 0);
+          let columnPosition = new THREE.Vector3(column.position.x, column.position.y, column.position.z);
           if (playerPosition.distanceTo(columnPosition) < 25 &&
               this.columns[i].plates.length > 0) { // 角色距离该柱子足够近且该柱子上存在汉诺塔
             let plates = this.columns[i].plates;
@@ -529,6 +447,11 @@ export default {
           socket.emit('OnPickUp', {username: this.player.username, columnIndex: columnIndex, index: index});
           this.originalColumn = columnIndex;
           this.index = index;
+        } else {
+          this.$message({
+            message: '不在拿起距离内',
+            type: 'warning'
+          })
         }
       }
     },
@@ -536,7 +459,6 @@ export default {
     putDown() {
       if (this.player.plate != null) { // 该角色有一个汉诺塔
         let rolePosition = new THREE.Vector3(this.player.x, this.player.y, 0);
-        console.log("enter putdown:")
         let index = this.player.plate.index; // 放下的汉诺塔的编号
         let columnIndex = this.originalColumn;
         for (let i = 0; i < this.columns.length; i++) {
@@ -546,14 +468,17 @@ export default {
             let plates = this.columns[i].plates;
             if (plates.length === 0 || plates[plates.length - 1].radius > this.player.plate.radius) {
               columnIndex = i;
+            } else {
+              this.$message({
+                message: '放置不符合规制',
+                type: 'warning'
+              })
             }
             break;
           }
         }
         socket.emit('OnPutDown', {username: this.player.username, columnIndex: columnIndex, index: index});
 
-
-        console.log("username: " + this.player.username + "columnIndex: " + columnIndex + "index: " + index)
         // 更新玩家信息
         let plate = this.player.plate;
         this.player.plate = null; // 更新该玩家信息
@@ -565,13 +490,11 @@ export default {
         this.pickedUpPlateObject.visible = true;
         this.originalColumn = -1;
         this.isPicked = false;
-        console.log("putdown----后")
-        console.log(this.columns[0].plates)
-        console.log(this.columns[0].plates.length)
       }
     }
 
-  },
+  }
+  ,
   mounted() {
     FirstPersonControls.bus = this.bus;
     this.init()
