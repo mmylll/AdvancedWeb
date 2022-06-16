@@ -134,6 +134,7 @@ export default {
         this.quitDialog = true;
         this.$router.replace('/About')
       }
+      this.firstPersonControl.disconnect();
     },
 
     addCylinder() {
