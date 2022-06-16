@@ -53,9 +53,18 @@
       <h2>操作记录</h2>
       <el-table :data="logs" stripe style="width: 100%" height="350px">
         <el-table-column prop="username" label="用户"/>
-        <el-table-column prop='type' label="操作类型"/>
+        <el-table-column prop='type' label="操作类型"
+          :filters="[
+              {text: '加入', value: 'join'},
+              {text: '离开', value: 'leave'},
+              {text: '拿起', value: 'pickUp'},
+              {text: '放下', value: 'putDown'}
+          ]"
+          :filter-method="filterType"/>
         <el-table-column prop='date' label="时间"/>
-        <el-table-column prop="plate" label="操作圆盘对象"/>
+        <el-table-column prop="plate" label="操作圆盘对象"
+          :filters="plate_filter" :formatter="format"
+          :filter-method="filterPlate"/>
       </el-table>
       <!--      <p v-for="(log, index) in logs" :id="index">操作类型： {{ log.type }} 操作记录： {{ log.date }}</p>-->
     </div>
@@ -74,7 +83,13 @@ export default {
       logs: [],
       robot3D: {},
       dialogVisible: false,
-      plateNumber: ''
+      plateNumber: 3,
+      plate_filter: [
+        {text: 'null', value: null},
+        {text: '0', value: 0},
+        {text: '1', value: 1},
+        {text: '2', value: 2}
+      ]
     }
   },
   methods: {
@@ -93,6 +108,11 @@ export default {
           message: '设置成功'
         })
         this.dialogVisible = false
+        this.plate_filter = []
+        for (let i in this.plateNumber) {
+          this.plate_filter.push({text: '' + i, value: i})
+        }
+        this.plate_filter.push({text: 'null', value: null})
       }).catch(() => {
         this.$message({
           type: 'warning',
@@ -118,6 +138,17 @@ export default {
       this.axios.get('/Info?username=' + this.username).then((res) => {
         this.email = res.data.data.email
       })
+    },
+    format(row, column, cellValue, index) {
+      if (cellValue === null)
+        return 'null';
+      return cellValue;
+    },
+    filterType(value, row) {
+      return row.type === value;
+    },
+    filterPlate(value, row) {
+      return row.plate === value;
     }
   },
   mounted() {
