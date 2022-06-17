@@ -46,7 +46,7 @@ public class SocketIOService {
         socketIOServer.start();
 
         socketIOServer.addConnectListener(client -> {
-            System.out.println("-------------------连接");
+            log.info("-------------------连接");
             UUID uuid = client.getSessionId();
             if (uuid != null) {
                 clientMap.put(uuid, client);
@@ -98,29 +98,6 @@ public class SocketIOService {
             sendToOthers("OnPlayerJoin", uuid, map);
             // 向数据库写入日志
             UserLog userLog = new UserLog(username, "join", getLocalDateTime(), null);
-            userLogRepository.save(userLog);
-        });
-
-        socketIOServer.addEventListener("OnLeave", JSONObject.class, (client, data, ackRequest) -> {
-            log.info("-------------------离开");
-            UUID uuid = client.getSessionId();
-            String username = (String) data.get("username");
-            Player player = room.getPlayers().get(uuid);
-            if (player == null) {
-                log.info("player is not found in player list");
-                return;
-            }
-            room.getPlayers().remove(uuid);
-            log.info("玩家离开：" + player.getUsername());
-            log.info("当前玩家数:" + room.getPlayers().size());
-
-            Map<String, Object> map = new HashMap<>();
-            map.put("username", username);
-            // 转发离开的玩家名给其他玩家
-            sendToOthers("OnPlayerLeave", uuid, map);
-
-            // 向数据库写入日志
-            UserLog userLog = new UserLog(username, "leave", getLocalDateTime(), null);
             userLogRepository.save(userLog);
         });
 
