@@ -169,11 +169,12 @@ public class SocketIOService {
                     room.setSomeonePickUp(true);
 
                     Map<String, Object> map = new HashMap<>();
-                    map.put("columns", room.getColumns());
-
-                    // 返回客户端新的columns数组
+                    map.put("state", 1);
+                    // 返回客户端成功消息
                     client.sendEvent("PickedUp", uuid, map);
+
                     // 转发被更新的玩家给其他玩家
+                    map.put("columns", room.getColumns());
                     sendToOthers("OnPlayerPickUp", uuid, map);
 
                     // 向数据库写入日志
@@ -184,6 +185,10 @@ public class SocketIOService {
                 }
                 // 否则，不能拿起
                 else {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("state", 0);
+                    // 返回客户端失败消息
+                    client.sendEvent("PickedUp", uuid, map);
                     log.info("失败");
                 }
             }
