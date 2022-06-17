@@ -38,7 +38,7 @@ public class SocketIOConfig
         socketConfig.setSoLinger(0);
         com.corundumstudio.socketio.Configuration config = new com.corundumstudio.socketio.Configuration();
         config.setSocketConfig(socketConfig);
-        //config.setOrigin(null);
+        //config.setOrigin("127.0.0.1");
         config.setHostname(host);
         config.setPort(port);
         config.setBossThreads(bossCount);

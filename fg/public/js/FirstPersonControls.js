@@ -51,12 +51,12 @@ class FirstPersonControls {
 
             this.yawObject.rotation.y -= movementX * 0.002;
 
-
             this.pitchObject.rotation.x -= movementY * 0.002;
             // 这一步的目的是什么
             this.pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.pitchObject.rotation.x));
-
+            //console.log(this.role.position)
             this.role.rotation.y -= movementX * 0.002;
+            FirstPersonControls.bus.emit('modifyRole');
         }
     }
 
@@ -122,7 +122,7 @@ class FirstPersonControls {
             if (this.role)
                 this.role.translateX(-moveSpeed * direction.x * delta);
         }
-        if (this.role) {
+        if (this.role && (this.moveLeft || this.moveRight || this.moveBackward || this.moveForward)) {
             FirstPersonControls.bus.emit('modifyRole');
         }
 

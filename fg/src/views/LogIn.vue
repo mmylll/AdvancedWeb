@@ -142,10 +142,10 @@ export default {
             .then(resp => {
               if (resp.data.status === 200) {
                 ElMessage.success('登录成功')
-                this.$router.replace('/About')
-                console.log(resp)
+
                 this.$store.commit('setToken', resp.data.data)
                 this.$store.commit('setUsername', this.loginForm.Username)
+                this.$router.push('/About')
               } else {
                 ElMessage.error(resp.data.message)
               }

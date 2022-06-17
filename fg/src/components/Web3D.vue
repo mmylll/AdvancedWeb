@@ -34,6 +34,7 @@ export default {
     return {
       camera: null,
       render: null,
+      //role: null,
       skybox: {
         back: require('../assets/skyBox/back.jpg'),
         bottom: require('../assets/skyBox/bottom.jpg'),
@@ -83,7 +84,8 @@ export default {
       originColumn: -1, // 被拿起的块的原来的柱子编号
       copyColumns: [],
       colors: ["#ff0000", "#00ff00", "#0000ff"],
-      inputing: false
+      inputing: false,
+      animationKey: null
     }
   },
   methods: {
@@ -93,7 +95,6 @@ export default {
       this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
       this.camera.position.set(0, 100, 0)
       this.camera.rotation.set(0, Math.PI, 0);
-
 
       this.render.setClearColor(0xffffff, 1.0)
       this.render.setSize(window.innerWidth, window.innerHeight)
@@ -114,10 +115,19 @@ export default {
         })
       } else {
         socket.disconnect();
+        socket.close();
+        scene.remove(role)
+        this.firstPersonControl.role = null
+        this.firstPersonControl.disconnect()
+        scene.remove(this.firstPersonControl.yawObject)
+        this.firstPersonControl = null;
+        FirstPersonControls.bus = null
+        role = null;
+        cancelAnimationFrame(this.animationKey)
         this.quitDialog = true;
         this.$router.replace('/About')
       }
-      this.firstPersonControl.disconnect();
+      //this.firstPersonControl.disconnect();
     },
 
     addCylinder() {
@@ -204,14 +214,12 @@ export default {
 
       this.firstPersonControl.update(dt);
       this.renderCanvas()
-      requestAnimationFrame(() => {
+      this.animationKey = requestAnimationFrame(() => {
         this.animate()
       })
     },
     // 创建人物
     createRole() {
-
-
       this.loader = new GLTFLoader()
       this.dracoLoader = new DRACOLoader()
       this.dracoLoader.setDecoderPath('/draco/')
@@ -219,11 +227,11 @@ export default {
       this.loader.setDRACOLoader(this.dracoLoader)
 
       this.loader.load('3D/RobotExpressive.glb', gltf => {
-        this.role = gltf.scene
-        this.role.position.y = 0
-        this.role.scale.set(7, 7, 7)// 设置模型大小
-        this.role.rotation.y = Math.PI
-        this.mixer = new THREE.AnimationMixer(this.role);
+        role = gltf.scene
+        role.position.y = 0
+        role.scale.set(7, 7, 7)// 设置模型大小
+        role.rotation.y = Math.PI
+        this.mixer = new THREE.AnimationMixer(role);
         this.animations.walking = gltf.animations[10]
         this.animations.standing = gltf.animations[8]
         this.stateList.Walking = this.mixer.clipAction(gltf.animations[10]);
@@ -233,8 +241,8 @@ export default {
         this.stateList.Standing.loop = THREE.LoopOnce;
         this.currentAction = this.stateList.Standing;
         this.currentAction.play();
-        scene.add(this.role);
-        this.firstPersonControl.role = this.role
+        scene.add(role);
+        this.firstPersonControl.role = role
         this.updatePositionAndRotation()
       }, undefined, function (e) {
         console.error(e);
@@ -304,6 +312,10 @@ export default {
         }
         this.addCylinder();
         this.renderOtherPlayer();
+      }).then(() => {
+        this.socketInit()
+      }).then(() => {
+        this.join()
       })
     },
     getPlayerByName(username) {
@@ -316,7 +328,7 @@ export default {
     socketInit() {
       socket.connect();
       socket.on('connect', () => {
-        this.join();
+
       })
       socket.on('disconnect', () => {
         this.$message({
@@ -325,8 +337,26 @@ export default {
         })
       })
       socket.on('OnPlayerJoin', (player) => {
+        let object = scene.getObjectByName(player.player.username)
+        if (object) {
+          // object.traverse((obj) => {
+          //   if (obj.type === 'Mesh') {
+          //     obj.geometry.dispose();
+          //     obj.material.dispose();
+          //   }
+          // })
+          // this.render.renderLists.dispose();
+          // //console.log(scene)
+          // scene.remove(object);
+          console.log(scene.children, object)
+          object.removeFromParent();
+          console.log(scene.children, object)
+        }
+        //console.log(scene)
         this.otherPlayer.push(player.player)
+        console.log(scene.children)
         this.renderAPlayer(player.player);
+        console.log(scene.children)
         this.$message({
           message: player.player.username + "加入了游戏",
           type: 'success'
@@ -338,7 +368,18 @@ export default {
         if (player !== null) {
           this.otherPlayer.splice(this.otherPlayer.indexOf(player), 1);
           let object = scene.getObjectByName(username);
-          scene.remove(object);
+          console.log(scene.children, object)
+          object.removeFromParent()
+          // object.traverse((obj) => {
+          //   if (obj.type === 'Mesh') {
+          //     obj.geometry.dispose();
+          //     obj.material.dispose();
+          //   }
+          // })
+          // this.render.renderLists.dispose();
+          // scene.remove(object);
+          // THREE.Cache.clear()
+          console.log(scene.children)
           this.$message({
             message: username + "离开了游戏",
             type: 'success'
@@ -411,15 +452,15 @@ export default {
       })
     },
     updatePositionAndRotation() {
-      if (this.role !== undefined) {
-        this.player.x = this.role.position.x
-        this.player.y = this.role.position.y
-        this.player.z = this.role.position.z;
-        this.player.ry = this.role.rotation.y;
+      if (role !== undefined) {
+        console.log(role)
+        this.player.x = role.position.x
+        this.player.y = role.position.y
+        this.player.z = role.position.z;
+        this.player.ry = role.rotation.y;
       }
     },
     join() {
-
       socket.emit('OnJoin', this.player)
     },
 
@@ -500,7 +541,8 @@ export default {
     this.init()
     this.createRole()
     this.getRoomInfo();
-    this.socketInit();
+    //this.socketInit();
+    //this.join();
     window.addEventListener('keydown', this.keyPressed, false);
     window.addEventListener('keyup', this.keyUp, false)
     this.bus.on('modifyRole', () => {

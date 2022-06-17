@@ -80,6 +80,7 @@ import Base3d from "../../public/js/showRobot";
 import qs from "qs";
 import * as echarts from 'echarts'
 
+let echart1, echart2
 export default {
   name: 'About',
   data() {
@@ -163,16 +164,16 @@ export default {
     },
     handleSelect(key) {
       if (key === '1') {
-        this.$router.replace('/room')
+        this.$router.push('/room')
       } else if (key === '2') {
-        this.$router.replace('/About')
+        this.$router.push('/About')
       } else if (key === '3') {
         this.dialogVisible = true;
       } else {
         localStorage.clear();
         this.$store.state.username = null;
         this.$store.state.token = null
-        this.$router.replace('/')
+        this.$router.push('/')
       }
     },
     getInfo() {
@@ -193,7 +194,6 @@ export default {
     },
 
     count() {
-
       let map = {
         'join': 0,
         'leave': 1,
@@ -211,13 +211,13 @@ export default {
       // console.log(this.optionOne)
     },
     paintCharts() {
-      let chart1 = echarts.init(document.getElementById('e-one'), null, {
+      echart1 = echarts.init(document.getElementById('e-one'), null, {
         width: 600,
         height: 400
       })
-      chart1.setOption(this.optionOne)
-      let chart2 = echarts.init(document.getElementById('e-two'))
-      chart2.setOption(this.optionTwo)
+      echart1.setOption(this.optionOne)
+      echart2 = echarts.init(document.getElementById('e-two'))
+      echart2.setOption(this.optionTwo)
     }
   },
   mounted() {
@@ -225,7 +225,25 @@ export default {
     this.getLog();
     this.paintCharts();
     this.robot3D = new Base3d('#scene');
-  }
+  },
+  // noReloaded: function () {
+  //   if (location.href.indexOf("#reloaded") === -1) {
+  //     location.href = location.href + "#reloaded";
+  //     window.location.reload();
+  //   }
+  // },
+  beforeRouteLeave(to, from) {
+    //this.$message({message: 'leave', type: 'success'})
+    echart1.dispose()
+    echart2.dispose()
+    document.getElementById('scene').innerHTML = ''
+  },
+  // unmounted() {
+  //   console.log('mounted')
+  //   echart1.dispose()
+  //   echart2.dispose()
+  //   //document.getElementById('scene').innerHTML = ''
+  // }
 }
 </script>
 <style>
