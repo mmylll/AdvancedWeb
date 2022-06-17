@@ -153,6 +153,7 @@ public class SocketIOService {
                     // 否则，发回成功信息
                     int lastIndex = column.getPlates().size() - 1;
                     plate = column.getPlates().remove(lastIndex);
+                    room.setSomeonePickUp(true);
                 }
             }
             if (someonePickedUp)
