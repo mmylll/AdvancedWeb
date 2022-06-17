@@ -60,15 +60,18 @@ public class SocketIOService {
         socketIOServer.addDisconnectListener(client -> {
             log.info("-------------------断开连接");
             UUID uuid = client.getSessionId();
-            String username = room.getPlayers().get(uuid).getUsername();
-            if (uuid != null) {
-                clientMap.remove(uuid);
-                room.getPlayers().remove(uuid);
-                client.disconnect();
+            Map<UUID, Player> players;
+            clientMap.remove(uuid);
+            synchronized (room) {
+                players = room.getPlayers();
             }
+            String username = players.get(uuid).getUsername();
+
+            players.remove(uuid);
             log.info("客户端断开连接: uuid=" + uuid);
             log.info("当前连接数:" + clientMap.size());
-            log.info("剩余玩家数:" + room.getPlayers().size());
+            log.info("剩余玩家数:" + players.size());
+            client.disconnect();
 
             Map<String, Object> map = new HashMap<>();
             map.put("username", username);
@@ -88,11 +91,15 @@ public class SocketIOService {
             String username = (String) data.get("username");
             player.setUsername((String) data.get("username"));
             setPlayerPosition(player, data);
-
+            Map<UUID, Player> players;
             // 添加到玩家列表
-            room.getPlayers().put(uuid, player);
+            synchronized (room) {
+                players = room.getPlayers();
+            }
+
+            players.put(uuid, player);
             log.info("玩家加入：" + player.getUsername());
-            log.info("当前玩家数:" + room.getPlayers().size());
+            log.info("当前玩家数:" + players.size());
 
             Map<String, Object> map = new HashMap<>();
             map.put("player", player);
@@ -107,7 +114,12 @@ public class SocketIOService {
         socketIOServer.addEventListener("OnUpdate", JSONObject.class, (client, data, ackRequest) -> {
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
-            Player player = room.getPlayers().get(uuid);
+            Map<UUID, Player> players;
+            synchronized (room) {
+                players = room.getPlayers();
+            }
+            Player player = players.get(uuid);
+
             if (player == null) {
                 log.info("player is not found in player list");
                 return;
@@ -126,7 +138,12 @@ public class SocketIOService {
             log.info("-------------------拿起");
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
-            Player player = room.getPlayers().get(uuid);
+            Map<UUID, Player> players;
+            synchronized (room) {
+                players = room.getPlayers();
+            }
+            Player player = players.get(uuid);
+
             if (player == null) {
                 log.info("player is not found in player list");
                 return;
@@ -136,12 +153,12 @@ public class SocketIOService {
             player.setPlate(plateIndex);
 
             Integer columnIndex = (Integer) data.get("columnIndex");
-            Column column = room.getColumns().get(columnIndex);
             Plate plate = null;
 
             boolean someonePickedUp;
             // 更新柱子的plates
             synchronized (room) {
+                Column column = room.getColumns().get(columnIndex);
                 // 已经有人拿起plate，放弃pickUp并发回错误信息，释放锁之后结束处理
                 someonePickedUp = room.isSomeonePickUp();
                 if (someonePickedUp) {
@@ -186,7 +203,12 @@ public class SocketIOService {
 
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
-            Player player = room.getPlayers().get(uuid);
+            Map<UUID, Player> players;
+            synchronized (room) {
+                players = room.getPlayers();
+            }
+
+            Player player = players.get(uuid);
             if (player == null) {
                 log.info("player is not found in player list");
                 return;
@@ -197,9 +219,9 @@ public class SocketIOService {
             player.setPlate(null);
 
             Integer columnIndex = (Integer) data.get("columnIndex");
-            Column column = room.getColumns().get(columnIndex);
             // 更新柱子的plates
             synchronized (room) {
+                Column column = room.getColumns().get(columnIndex);
                 column.getPlates().add(plate);
                 room.setSomeonePickUp(false);
             }
