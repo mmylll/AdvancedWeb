@@ -19,6 +19,7 @@ import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +52,7 @@ public class SocketIOService {
             UUID uuid = client.getSessionId();
             if (uuid != null) {
                 clientMap.put(uuid, client);
-                log.info("客户端连接: uuid=" + uuid);
+                log.info("客户端连接: uuid = " + uuid);
             }
             log.info("当前连接数:" + clientMap.size());
         });
@@ -61,17 +62,18 @@ public class SocketIOService {
             log.info("-------------------断开连接");
             UUID uuid = client.getSessionId();
             Map<UUID, Player> players;
-            clientMap.remove(uuid);
             synchronized (room) {
                 players = room.getPlayers();
             }
-            String username = players.get(uuid).getUsername();
 
+            clientMap.remove(uuid);
+            String username = players.get(uuid).getUsername();
             players.remove(uuid);
-            log.info("客户端断开连接: uuid=" + uuid);
+            client.disconnect();
+
+            log.info("客户端断开连接: uuid = " + uuid + ", username = " + username);
             log.info("当前连接数:" + clientMap.size());
             log.info("剩余玩家数:" + players.size());
-            client.disconnect();
 
             Map<String, Object> map = new HashMap<>();
             map.put("username", username);
@@ -87,18 +89,19 @@ public class SocketIOService {
         socketIOServer.addEventListener("OnJoin", JSONObject.class, (client, data, ackRequest) -> {
             log.info("-------------------加入");
             UUID uuid = client.getSessionId();
-            Player player = new Player();
             String username = (String) data.get("username");
-            player.setUsername((String) data.get("username"));
-            setPlayerPosition(player, data);
             Map<UUID, Player> players;
             // 添加到玩家列表
             synchronized (room) {
                 players = room.getPlayers();
             }
 
+            Player player = new Player();
+            player.setUsername(username);
+            setPlayerPosition(player, data);
             players.put(uuid, player);
-            log.info("玩家加入：" + player.getUsername());
+
+            log.info("玩家加入：uuid = " + uuid + ", username = " + username);
             log.info("当前玩家数:" + players.size());
 
             Map<String, Object> map = new HashMap<>();
@@ -138,106 +141,102 @@ public class SocketIOService {
             log.info("-------------------拿起");
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
-            Map<UUID, Player> players;
-            synchronized (room) {
-                players = room.getPlayers();
-            }
-            Player player = players.get(uuid);
-
-            if (player == null) {
-                log.info("player is not found in player list");
-                return;
-            }
-
             Integer plateIndex = (Integer) data.get("index");
-            player.setPlate(plateIndex);
-
             Integer columnIndex = (Integer) data.get("columnIndex");
-            Plate plate = null;
-
+            Map<UUID, Player> players;
             boolean someonePickedUp;
-            // 更新柱子的plates
+
             synchronized (room) {
+                // 获取player，确保想要拿起盘子的player存在
+                players = room.getPlayers();
+                Player player = players.get(uuid);
+                if (player == null) {
+                    log.info("player not found: uuid = " + uuid);
+                    return;
+                }
+
                 Column column = room.getColumns().get(columnIndex);
                 // 已经有人拿起plate，放弃pickUp并发回错误信息，释放锁之后结束处理
                 someonePickedUp = room.isSomeonePickUp();
-                if (someonePickedUp) {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("state", 0);
-                    client.sendEvent("PickedUp", map);
-                    log.info("失败");
-                } else {
-                    // 否则，发回成功信息
-                    int lastIndex = column.getPlates().size() - 1;
-                    plate = column.getPlates().remove(lastIndex);
+                List<Plate> platesOnColumn = column.getPlates();
+                // 没有任何人拿着圆盘且柱子上有圆盘可拿，则成功拿起
+                if (!someonePickedUp && player.getPlate() == null && platesOnColumn.size() > 0) {
+                    // 更新柱子上的plates
+                    platesOnColumn.remove(platesOnColumn.size() - 1);
+                    // 更新player持有的plate
+                    player.setPlate(plateIndex);
+                    // 现在有人拿着圆盘
                     room.setSomeonePickUp(true);
+
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("columns", room.getColumns());
+
+                    // 返回客户端新的columns数组
+                    client.sendEvent("PickedUp", uuid, map);
+                    // 转发被更新的玩家给其他玩家
+                    sendToOthers("OnPlayerPickUp", uuid, map);
+
+                    // 向数据库写入日志
+                    UserLog userLog = new UserLog(username, "pickUp", getLocalDateTime(), plateIndex);
+                    userLogRepository.save(userLog);
+                    log.info("成功");
+                    log.info("username:" + username + ", plateIndex:" + plateIndex + ", columnIndex:" + columnIndex);
+                }
+                // 否则，不能拿起
+                else {
+                    log.info("失败");
                 }
             }
-            if (someonePickedUp)
-                return;
-
-            log.info("username:" + username + ", plateIndex:" + plateIndex + ", columnIndex:" + columnIndex);
-            log.info("plate:" + plate);
-
-            // 发回成功信息
-            Map<String, Object> map = new HashMap<>();
-            map.put("state", 1);
-            client.sendEvent("PickedUp", map);
-            log.info("成功");
-
-            map.clear();
-            map.put("username", username);
-            map.put("index", plateIndex);
-            map.put("columnIndex", columnIndex);
-            map.put("plate", plate);
-            // 转发被更新的玩家给其他玩家
-            sendToOthers("OnPlayerPickUp", uuid, map);
-            // 向数据库写入日志
-            UserLog userLog = new UserLog(username, "pickUp", getLocalDateTime(), plateIndex);
-            userLogRepository.save(userLog);
         });
 
         /* 放下圆盘事件监听器 */
         socketIOServer.addEventListener("OnPutDown", JSONObject.class, (client, data, ackRequest) -> {
             log.info("-------------------放下");
-
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
+            Integer plateIndex = (Integer) data.get("index");
+            Integer columnIndex = (Integer) data.get("columnIndex");
             Map<UUID, Player> players;
+
+            Plate plate = new Plate(plateIndex, Plate.BASE_RADIUS + plateIndex * Plate.RADIUS_STEP, Plate.HEIGHT);
+
             synchronized (room) {
                 players = room.getPlayers();
-            }
+                // 获取player，确保想要放下圆盘的player存在
+                Player player = players.get(uuid);
+                if (player == null) {
+                    log.info("player not found: uuid = " + uuid);
+                    return;
+                }
 
-            Player player = players.get(uuid);
-            if (player == null) {
-                log.info("player is not found in player list");
-                return;
-            }
-
-            Integer plateIndex = (Integer) data.get("index");
-            Plate plate = new Plate(plateIndex, Plate.BASE_RADIUS + plateIndex * Plate.RADIUS_STEP, Plate.HEIGHT);
-            player.setPlate(null);
-
-            Integer columnIndex = (Integer) data.get("columnIndex");
-            // 更新柱子的plates
-            synchronized (room) {
+                Integer holdingPlate = player.getPlate();
                 Column column = room.getColumns().get(columnIndex);
-                column.getPlates().add(plate);
-                room.setSomeonePickUp(false);
-            }
-            log.info("username:" + username + ", plateIndex:" + plateIndex + ", columnIndex:" + columnIndex);
-            log.info("plate:" + plate);
+                List<Plate> platesOnColumn = column.getPlates();
+                // 1. 有player拿着圆盘且那个人是自己;2. 将放下的圆盘编号小于柱子顶部的圆盘
+                if (room.isSomeonePickUp() && holdingPlate != null && holdingPlate.equals(plateIndex) &&
+                        plateIndex < platesOnColumn.get(platesOnColumn.size() - 1).getIndex()) {
+                    // 更新柱子的plates
+                    platesOnColumn.add(plate);
+                    // 更新player持有的plate
+                    player.setPlate(null);
+                    // 现在没有任何人拿着圆盘
+                    room.setSomeonePickUp(false);
 
-            Map<String, Object> map = new HashMap<>();
-            map.put("username", username);
-            map.put("index", plateIndex);
-            map.put("columnIndex", columnIndex);
-            map.put("plate", plate);
-            // 转发给其他玩家
-            sendToOthers("OnPlayerPutDown", uuid, map);
-            // 向数据库写入日志
-            UserLog userLog = new UserLog(username, "putDown", getLocalDateTime(), plateIndex);
-            userLogRepository.save(userLog);
+                    log.info("username:" + username + ", plateIndex:" + plateIndex + ", columnIndex:" + columnIndex);
+                    log.info("plate:" + plate);
+
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("columns", room.getColumns());
+                    // 转发给其他玩家
+                    sendToOthers("OnPlayerPutDown", uuid, map);
+                    // 向数据库写入日志
+                    UserLog userLog = new UserLog(username, "putDown", getLocalDateTime(), plateIndex);
+                    userLogRepository.save(userLog);
+                }
+                else {
+                    log.info("失败");
+                }
+            }
         });
 
         /* 发送聊天消息事件监听器 */
