@@ -45,6 +45,7 @@ public class SocketIOService {
     private void autoStartup() throws Exception {
         socketIOServer.start();
 
+        /* 连接事件监听器 */
         socketIOServer.addConnectListener(client -> {
             log.info("-------------------连接");
             UUID uuid = client.getSessionId();
@@ -55,7 +56,7 @@ public class SocketIOService {
             log.info("当前连接数:" + clientMap.size());
         });
 
-
+        /* 断连事件监听器 */
         socketIOServer.addDisconnectListener(client -> {
             log.info("-------------------断开连接");
             UUID uuid = client.getSessionId();
@@ -79,6 +80,7 @@ public class SocketIOService {
             userLogRepository.save(userLog);
         });
 
+        /* 加入房间事件监听器 */
         socketIOServer.addEventListener("OnJoin", JSONObject.class, (client, data, ackRequest) -> {
             log.info("-------------------加入");
             UUID uuid = client.getSessionId();
@@ -101,6 +103,7 @@ public class SocketIOService {
             userLogRepository.save(userLog);
         });
 
+        /* 更新模型事件监听器 */
         socketIOServer.addEventListener("OnUpdate", JSONObject.class, (client, data, ackRequest) -> {
             UUID uuid = client.getSessionId();
             String username = (String) data.get("username");
@@ -118,6 +121,7 @@ public class SocketIOService {
             sendToOthers("OnPlayerUpdate", uuid, map);
         });
 
+        /* 拿起圆盘事件监听器 */
         socketIOServer.addEventListener("OnPickUp", JSONObject.class, (client, data, ackRequest) -> {
             log.info("-------------------拿起");
             UUID uuid = client.getSessionId();
@@ -175,6 +179,7 @@ public class SocketIOService {
             userLogRepository.save(userLog);
         });
 
+        /* 放下圆盘事件监听器 */
         socketIOServer.addEventListener("OnPutDown", JSONObject.class, (client, data, ackRequest) -> {
             log.info("-------------------放下");
 
@@ -212,6 +217,7 @@ public class SocketIOService {
             userLogRepository.save(userLog);
         });
 
+        /* 发送聊天消息事件监听器 */
         socketIOServer.addEventListener("OnSendMessage", JSONObject.class, (client, data, ackRequest) -> {
             log.info("-------------------发送消息");
             UUID uuid = client.getSessionId();
@@ -240,6 +246,11 @@ public class SocketIOService {
         log.info("socket.io服务已关闭");
     }
 
+    /**
+     * 从前端数据对象中读取坐标和朝向信息，更新给定的Player模型实例
+     * @param player 更新的目标对象
+     * @param data 源数据对象
+     * */
     private void setPlayerPosition(Player player, JSONObject data) {
         player.setX((Number) data.get("x"));
         player.setY((Number) data.get("y"));
@@ -249,6 +260,12 @@ public class SocketIOService {
         player.setRz((Number) data.get("rz"));
     }
 
+    /**
+     * 将给定的消息对象通过指定的事件发送给除了uuid对应的socketClient以外的其他连接
+     * @param event 事件名称
+     * @param uuid  不需要发送的用户
+     * @param message 发送的消息对象
+     * */
     private void sendToOthers(String event, UUID uuid, Map<String, Object> message) {
         clientMap.forEach((_uuid, socketIOClient) -> {
             if (!_uuid.equals(uuid)) {
@@ -257,6 +274,9 @@ public class SocketIOService {
         });
     }
 
+    /**
+     * 获取当前上海时区的LocalDateTime
+     * */
     private LocalDateTime getLocalDateTime() {
         LocalDateTime now = LocalDateTime.now();
         ZoneId zoneId = ZoneId.of("Asia/Shanghai");

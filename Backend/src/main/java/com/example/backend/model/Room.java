@@ -10,13 +10,19 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Data
 public class Room {
+    // 固定的柱子数量
     public static final int COLUMN_NUMBER = 3;
+    // 可配置的圆盘数量
     public static int plateNumber = 3;
 
+    // 柱子的列表
     private List<Column> columns;
+    // 玩家的列表
     private Map<UUID, Player> players;
-    private boolean someonePickUp; // Whether someone has picked up a plate
+    // Whether someone has picked up a plate
+    private boolean someonePickUp;
 
+    // 单例
     private static Room room;
 
     private Room() {
