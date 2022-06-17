@@ -2,7 +2,7 @@
 
 import io from "socket.io-client";
 
-const socket = io.connect('ws://121.4.80.83：7697/', {
+const socket = io.connect('ws://121.4.80.83:7697/', {
     autoConnect: false,
     transports: ['websocket']
 });
