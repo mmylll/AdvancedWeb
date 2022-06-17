@@ -1,10 +1,10 @@
 <template>
   <div class="about">
     <el-menu
-        default-active="2"
-        class="el-menu-demo"
-        mode="horizontal"
-        @select="handleSelect"
+            default-active="2"
+            class="el-menu-demo"
+            mode="horizontal"
+            @select="handleSelect"
     >
       <el-menu-item index="1">汉诺塔</el-menu-item>
       <el-menu-item index="2">个人信息</el-menu-item>
@@ -13,9 +13,9 @@
     </el-menu>
 
     <el-dialog
-        v-model="dialogVisible"
-        title="设置参数"
-        width="30%">
+            v-model="dialogVisible"
+            title="设置参数"
+            width="30%">
       <h2>设置参数</h2>
       <el-input v-model="plateNumber" placeholder="输入参数"/>
       <template #footer>
@@ -76,313 +76,213 @@
   </div>
 </template>
 <script>
-import Base3d from "../../public/js/showRobot";
-import qs from "qs";
-import * as echarts from 'echarts'
+  import Base3d from "../../public/js/showRobot";
+  import qs from "qs";
+  import * as echarts from 'echarts'
 
-let echart1, echart2
-export default {
-  name: 'About',
-  data() {
-    return {
-      username: this.$store.state.username,
-      email: '',
-      logs: [],
-      robot3D: {},
-      dialogVisible: false,
-      plateNumber: 3,
-      plate_filter: [
-        {text: 'null', value: null},
-        {text: '0', value: 0},
-        {text: '1', value: 1},
-        {text: '2', value: 2}
-      ],
-      optionOne: {
-        title: {
-          text: '操作记录条形图'
-        },
-        tooltip: {},
-        legend: {
-          data: ['次数']
-        },
-        xAxis: {
-          data: ["join", "leave", 'pickUp', "putDown"]
-        },
-        yAxis: {},
-        series: [{
-          name: '次数',
-          type: 'bar',
-          width: '20',
-          data: [0, 0, 0, 0]
-        }]
-      },
-      optionTwo: {
-        title: {
-          text: '操作记录饼状图'
-        },
-        tooltip: {},
-        series: [{
-          name: '次数',
-          type: 'pie',
-          radius: '55%',
-          data: [{value: 0, name: 'join'}, {value: 0, name: 'leave'}, {value: 0, name: 'pickUp'}, {
-            value: 0,
-            name: 'putDown'
+  let echart1, echart2
+  export default {
+    name: 'About',
+    data() {
+      return {
+        username: this.$store.state.username,
+        email: '',
+        logs: [],
+        robot3D: {},
+        dialogVisible: false,
+        plateNumber: 3,
+        plate_filter: [
+          {text: 'null', value: null},
+          {text: '0', value: 0},
+          {text: '1', value: 1},
+          {text: '2', value: 2}
+        ],
+        optionOne: {
+          title: {
+            text: '操作记录条形图'
+          },
+          tooltip: {},
+          legend: {
+            data: ['次数']
+          },
+          xAxis: {
+            data: ["join", "leave", 'pickUp', "putDown"]
+          },
+          yAxis: {},
+          series: [{
+            name: '次数',
+            type: 'bar',
+            width: '20',
+            data: [0, 0, 0, 0]
           }]
-        }]
-      }
-    }
-  },
-  methods: {
-    getLog() {
-      this.axios.get('/Log?username=' + this.$store.state.username).then((res) => {
-        for (let log of res.data.data) {
-          log.date = log.date[0] + '-' + log.date[1] + '-' + log.date[2] + ' ' + log.date[3] + ':' + log.date[4] + ':' + log.date[5]
-          this.logs.push(log)
+        },
+        optionTwo: {
+          title: {
+            text: '操作记录饼状图'
+          },
+          tooltip: {},
+          series: [{
+            name: '次数',
+            type: 'pie',
+            radius: '55%',
+            data: [{value: 0, name: 'join'}, {value: 0, name: 'leave'}, {value: 0, name: 'pickUp'}, {
+              value: 0,
+              name: 'putDown'
+            }]
+          }]
         }
-        this.count()
-      })
+      }
     },
-    setPlateNumber() {
-      this.axios.post('/Set', qs.stringify({number: Number.parseInt(this.plateNumber)})).then(() => {
-        this.$message({
-          type: 'success',
-          message: '设置成功'
+    methods: {
+      // 获取当前玩家操作的log信息
+      getLog() {
+        this.axios.get('/Log?username=' + this.$store.state.username).then((res) => {
+          for (let log of res.data.data) {
+            log.date = log.date[0] + '-' + log.date[1] + '-' + log.date[2] + ' ' + log.date[3] + ':' + log.date[4] + ':' + log.date[5]
+            this.logs.push(log)
+          }
+          this.count()
         })
-        this.dialogVisible = false
-        this.plate_filter = []
-        for (let i in this.plateNumber) {
-          this.plate_filter.push({text: '' + i, value: i})
+      },
+      // 管理员设置汉诺塔的初始层数
+      setPlateNumber() {
+        this.axios.post('/Set', qs.stringify({number: Number.parseInt(this.plateNumber)})).then(() => {
+          this.$message({
+            type: 'success',
+            message: '设置成功'
+          })
+          this.dialogVisible = false
+          this.plate_filter = []
+          for (let i in this.plateNumber) {
+            this.plate_filter.push({text: '' + i, value: i})
+          }
+          this.plate_filter.push({text: 'null', value: null})
+        }).catch(() => {
+          this.$message({
+            type: 'warning',
+            message: '设置失败，有玩家在房间内'
+          })
+        })
+      },
+      // 导航栏的点击跳转页面
+      handleSelect(key) {
+        if (key === '1') {
+          this.$router.push('/room')
+        } else if (key === '2') {
+          this.$router.push('/About')
+        } else if (key === '3') {
+          this.dialogVisible = true;
+        } else {
+          localStorage.clear();
+          this.$store.state.username = null;
+          this.$store.state.token = null
+          this.$router.push('/')
         }
-        this.plate_filter.push({text: 'null', value: null})
-      }).catch(() => {
-        this.$message({
-          type: 'warning',
-          message: '设置失败，有玩家在房间内'
+      },
+      // 获取当前玩家的信息
+      getInfo() {
+        this.axios.get('/Info?username=' + this.username).then((res) => {
+          this.email = res.data.data.email
         })
-      })
-    },
-    handleSelect(key) {
-      if (key === '1') {
-        this.$router.push('/room')
-      } else if (key === '2') {
-        this.$router.push('/About')
-      } else if (key === '3') {
-        this.dialogVisible = true;
-      } else {
-        localStorage.clear();
-        this.$store.state.username = null;
-        this.$store.state.token = null
-        this.$router.push('/')
+      },
+      // 格式化log信息
+      format(row, column, cellValue, index) {
+        if (cellValue === null)
+          return 'null';
+        return cellValue;
+      },
+      // 通过操作log的类型信息进行筛选
+      filterType(value, row) {
+        return row.type === value;
+      },
+      // 通过操作log的圆盘信息进行筛选
+      filterPlate(value, row) {
+        return row.plate === value;
+      },
+      // 计数不同类型的操作
+      count() {
+        let map = {
+          'join': 0,
+          'leave': 1,
+          'pickUp': 2,
+          'putDown': 3
+        }
+        for (let log of this.logs) {
+          this.optionOne.series[0].data[map[log.type]]++;
+          this.optionTwo.series[0].data[map[log.type]].value++;
+        }
+        this.paintCharts()
+      },
+      // 绘制操作的数据图表
+      paintCharts() {
+        echart1 = echarts.init(document.getElementById('e-one'), null, {
+          width: 600,
+          height: 400
+        })
+        echart1.setOption(this.optionOne)
+        echart2 = echarts.init(document.getElementById('e-two'))
+        echart2.setOption(this.optionTwo)
       }
     },
-    getInfo() {
-      this.axios.get('/Info?username=' + this.username).then((res) => {
-        this.email = res.data.data.email
-      })
+    mounted() {
+      this.getInfo();
+      this.getLog();
+      this.paintCharts();
+      this.robot3D = new Base3d('#scene');
     },
-    format(row, column, cellValue, index) {
-      if (cellValue === null)
-        return 'null';
-      return cellValue;
-    },
-    filterType(value, row) {
-      return row.type === value;
-    },
-    filterPlate(value, row) {
-      return row.plate === value;
-    },
-
-    count() {
-      let map = {
-        'join': 0,
-        'leave': 1,
-        'pickUp': 2,
-        'putDown': 3
-      }
-      for (let log of this.logs) {
-        this.optionOne.series[0].data[map[log.type]]++;
-        this.optionTwo.series[0].data[map[log.type]].value++;
-      }
-      this.paintCharts()
-      // let chart1 = echarts.init(document.getElementById('e-one'))
-      // chart1.setOption(this.optionOne)
-      //
-      // console.log(this.optionOne)
-    },
-    paintCharts() {
-      echart1 = echarts.init(document.getElementById('e-one'), null, {
-        width: 600,
-        height: 400
-      })
-      echart1.setOption(this.optionOne)
-      echart2 = echarts.init(document.getElementById('e-two'))
-      echart2.setOption(this.optionTwo)
+    // 设置路由导航，离开页面时会将scene展示3d图形的模块清除
+    beforeRouteLeave(to, from) {
+      echart1.dispose()
+      echart2.dispose()
+      document.getElementById('scene').innerHTML = ''
     }
-  },
-  mounted() {
-    this.getInfo();
-    this.getLog();
-    this.paintCharts();
-    this.robot3D = new Base3d('#scene');
-  },
-  // noReloaded: function () {
-  //   if (location.href.indexOf("#reloaded") === -1) {
-  //     location.href = location.href + "#reloaded";
-  //     window.location.reload();
-  //   }
-  // },
-  beforeRouteLeave(to, from) {
-    //this.$message({message: 'leave', type: 'success'})
-    echart1.dispose()
-    echart2.dispose()
-    document.getElementById('scene').innerHTML = ''
-  },
-  // unmounted() {
-  //   console.log('mounted')
-  //   echart1.dispose()
-  //   echart2.dispose()
-  //   //document.getElementById('scene').innerHTML = ''
-  // }
-}
+  }
 </script>
 <style>
-.info {
-  width: 60%;
-  margin: 10px auto;
-  border: #2c3e50 solid 2px;
-  border-radius: 8px;
-}
+  .info {
+    width: 60%;
+    margin: 10px auto;
+    border: #2c3e50 solid 2px;
+    border-radius: 8px;
+  }
 
-.item {
-  text-align: left;
-  margin: 20px auto;
-}
+  .item {
+    text-align: left;
+    margin: 20px auto;
+  }
 
-.box-card {
-  height: 90%;
-}
+  .box-card {
+    height: 90%;
+  }
 
-.log {
-  width: 60%;
-  margin: 10px auto;
-  padding: 10px;
-  border: #2c3e50 solid 2px;
-  border-radius: 8px;
-}
+  .log {
+    width: 60%;
+    margin: 10px auto;
+    padding: 10px;
+    border: #2c3e50 solid 2px;
+    border-radius: 8px;
+  }
 
-.e-item {
-  width: 45%;
-  height: 400px;
-}
+  .e-item {
+    width: 45%;
+    height: 400px;
+  }
 
-.echarts {
-  width: 65%;
-  display: flex;
-  padding: 10px;
-  margin: 10px auto;
-  justify-content: space-between;
-  border: #2c3e50 solid 2px;
-  border-radius: 8px;
-}
+  .echarts {
+    width: 65%;
+    display: flex;
+    padding: 10px;
+    margin: 10px auto;
+    justify-content: space-between;
+    border: #2c3e50 solid 2px;
+    border-radius: 8px;
+  }
+  .img {
+    width: 300px;
+    height: 300px;
+    margin: 10px auto;
+  }
 
-/*.about {*/
-/*  color: #2c3e50;*/
-/*  background-image: url("../assets/skyBox/back.jpg");*/
-/*  background-size: 100%;*/
-/*  opacity: 1;*/
-/*}*/
-
-/*.manu {*/
-/*  width: 100%;*/
-/*  height: 3.4rem;*/
-/*  background-color: #2c3e50;*/
-/*  text-align: center;*/
-/*}*/
-
-/*!*span {*!*/
-/*!*  color: white;*!*/
-/*!*  display: block;*!*/
-/*!*  float: left;*!*/
-/*!*  margin: 0 auto;*!*/
-/*!*  padding: 1rem;*!*/
-/*!*}*!*/
-
-/*span:hover {*/
-/*  cursor: default;*/
-/*}*/
-
-/*!*span:hover {*!*/
-/*!*  background-position: 0 -30px;*!*/
-/*!*  background-color: #999999;*!*/
-/*!*}*!*/
-
-/*.web3d {*/
-/*  margin-left: 15%;*/
-/*}*/
-
-/*.message {*/
-/*  border: chocolate solid 1px;*/
-/*  opacity: 97%;*/
-/*  border-radius: 10px;*/
-/*  color: darkorange;*/
-/*}*/
-
-/*.info {*/
-/*  width: 70%;*/
-/*  margin: 0 auto;*/
-/*  border: #2c3e50 solid 1px;*/
-/*  background-image: none;*/
-/*  background-color: white;*/
-/*}*/
-
-/*.head {*/
-/*  align-content: center;*/
-/*  width: 100%;*/
-/*  height: 20rem;*/
-/*  border: darkblue solid 1px;*/
-/*  border-radius: 10px;*/
-/*}*/
-
-.img {
-  /*border: #2c3e50 solid 1px;*/
-  width: 300px;
-  height: 300px;
-  margin: 10px auto;
-  /*float: left;*/
-  /*margin: 3rem 3rem 3rem 7rem;*/
-}
-
-/*.intro {*/
-/*  margin: 3rem 3rem 3rem 0rem;*/
-/*  display: block;*/
-/*  float: left;*/
-/*  width: 30rem;*/
-/*  height: 13rem;*/
-/*  border: #2c3e50 solid 1px;*/
-/*}*/
-
-/*!*li {*!*/
-/*!*  display: block;*!*/
-/*!*  width: 90%;*!*/
-/*!*  font-size: 1rem;*!*/
-/*!*}*!*/
-
-/*.title {*/
-/*  text-align: left;*/
-/*  font-family: "Arial Black";*/
-/*}*/
-
-/*input {*/
-/*  width: 100%;*/
-/*  font-size: 1rem;*/
-/*}*/
-
-/*.game {*/
-/*  border-radius: 10px;*/
-/*  height: 20rem;*/
-/*  border: #2c3e50 solid 1px;*/
-/*}*/
 </style>
 
 

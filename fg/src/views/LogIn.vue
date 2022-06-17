@@ -76,124 +76,130 @@
 </template>
 
 <script>
-import {ElMessage} from "element-plus"
-import Qs from 'qs'
+  import {ElMessage} from "element-plus"
+  import Qs from 'qs'
 
-export default {
-  // eslint-disable-next-line vue/multi-word-component-names
-  name: 'Log',
-  data() {
-    return {
-      loginForm: {
-        Username: '',
-        Password: ''
+  export default {
+    // eslint-disable-next-line vue/multi-word-component-names
+    name: 'Log',
+    data() {
+      return {
+        loginForm: {
+          Username: '',
+          Password: ''
+        },
+        registerForm: {
+          email: '',
+          Username: '',
+          Password: ''
+        },
+        colors: ['white', 'white', 'white', 'white', 'white', 'white',],
+        isLogIn: false,
+        that: this
+      }
+    },
+    directives: {
+      // 指令名称
+      'check': (el, binding) => {
+        var temp = binding.value.num;
+        var that = binding.value.that;
+        // input 添加失焦时间
+        el.addEventListener('blur', (e) => {
+          // 未匹配成功
+          if (e.target.value == '') {
+            console.log(that.colors[temp]);
+            that.colors[temp] = 'red';
+            el.style.borderColor = '#f00'
+          } else {
+            that.colors[temp] = 'white';
+            el.style.borderColor = '#000'
+          }
+        })
+      }
+    },
+    methods: {
+      // 是在登录还是注册
+      toggleClass() {
+        this.isLogIn = !this.isLogIn
       },
-      registerForm: {
-        email: '',
-        Username: '',
-        Password: ''
-      },
-      colors: ['white', 'white', 'white', 'white', 'white', 'white',],
-      isLogIn: false,
-      that: this
-    }
-  },
-  directives: {
-    // 指令名称
-    'check': (el, binding) => {
-      var temp = binding.value.num;
-      var that = binding.value.that;
-      // input 添加失焦时间
-      el.addEventListener('blur', (e) => {
-        // 未匹配成功
-        if (e.target.value == '') {
-          console.log(that.colors[temp]);
-          that.colors[temp] = 'red';
-          el.style.borderColor = '#f00'
-        } else {
-          that.colors[temp] = 'white';
-          el.style.borderColor = '#000'
+      // 检测登录的信息是否为空
+      checkLogin() {
+        if (this.loginForm.Password === '' || this.loginForm.Username === "") {
+          return false;
         }
-      })
+        return true;
+      },
+      // 检查注册的信息是否为空
+      checkRegister() {
+        if (this.registerForm.Password === '' || this.registerForm.Username === "" || this.registerForm.email === '') {
+          return false;
+        }
+        return true;
+      },
+      // 登录
+      login() {
+        if (this.checkLogin()) {
+          this.axios.post('/Login', Qs.stringify({
+            username: this.loginForm.Username,
+            password: this.loginForm.Password,
+          }))
+                  .then(resp => {
+                    if (resp.data.status === 200) {
+                      ElMessage.success('登录成功')
+
+                      this.$store.commit('setToken', resp.data.data)
+                      this.$store.commit('setUsername', this.loginForm.Username)
+                      // 登录成功跳转个人信息页面
+                      this.$router.push('/About')
+                    } else {
+                      ElMessage.error(resp.data.message)
+                    }
+                  })
+                  .catch(error => {
+                    ElMessage.error('登录失败，账号出错');
+                  })
+
+        } else {
+          ElMessage.warning("登录信息不完整")
+        }
+      },
+      // 注册
+      register() {
+        if (this.checkRegister()) {
+          this.axios.post('/Register', Qs.stringify({
+            username: this.registerForm.Username,
+            password: this.registerForm.Password,
+            email: this.registerForm.email
+          }))
+                  .then(resp => {
+                    console.log(resp)
+                    // 根据后端的返回数据修改
+                    if (resp.data.status === 200) {
+                      // 跳转到login
+                      ElMessage.success('注册成功')
+                      this.toggleClass()
+                    } else {
+                      ElMessage.error(resp.data.message)
+                    }
+                  })
+                  .catch(error => {
+                    console.log(error)
+                    ElMessage.error('注册失败')
+                  })
+
+        } else {
+          ElMessage.warning("注册信息不完整")
+        }
+      }
+    },
+    mounted() {
+
+
     }
-  },
-  methods: {
-    toggleClass() {
-      this.isLogIn = !this.isLogIn
-    },
-    checkLogin() {
-      if (this.loginForm.Password === '' || this.loginForm.Username === "") {
-        return false;
-      }
-      return true;
-    },
-    checkRegister() {
-      if (this.registerForm.Password === '' || this.registerForm.Username === "" || this.registerForm.email === '') {
-        return false;
-      }
-      return true;
-    },
-    login() {
-      if (this.checkLogin()) {
-        this.axios.post('/Login', Qs.stringify({
-          username: this.loginForm.Username,
-          password: this.loginForm.Password,
-        }))
-            .then(resp => {
-              if (resp.data.status === 200) {
-                ElMessage.success('登录成功')
-
-                this.$store.commit('setToken', resp.data.data)
-                this.$store.commit('setUsername', this.loginForm.Username)
-                this.$router.push('/About')
-              } else {
-                ElMessage.error(resp.data.message)
-              }
-            })
-            .catch(error => {
-              ElMessage.error('登录失败，账号出错');
-            })
-
-      } else {
-        ElMessage.warning("登录信息不完整")
-      }
-    },
-    register() {
-      if (this.checkRegister()) {
-        this.axios.post('/Register', Qs.stringify({
-          username: this.registerForm.Username,
-          password: this.registerForm.Password,
-          email: this.registerForm.email
-        }))
-            .then(resp => {
-              console.log(resp)
-              // 根据后端的返回数据修改
-              if (resp.data.status === 200) {
-                // 跳转到login
-                ElMessage.success('注册成功')
-                this.toggleClass()
-              } else {
-                ElMessage.error(resp.data.message)
-              }
-            })
-            .catch(error => {
-              console.log(error)
-              ElMessage.error('注册失败')
-            })
-
-      } else {
-        ElMessage.warning("注册信息不完整")
-      }
-    }
-  },
-  mounted() {
-
-
   }
-}
 </script>
 
 <style scoped></style>
 <style>
-@import "../CSS/logIn.css";
+  @import "../CSS/logIn.css";
 </style>

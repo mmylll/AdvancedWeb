@@ -35,7 +35,7 @@ class FirstPersonControls {
 
         this.role = null;
     }
-
+    // 是否锁定当前页面
     onPointerlockChange() {
         this.isLocked = document.pointerLockElement === this.domElement;
     }
@@ -43,7 +43,7 @@ class FirstPersonControls {
     onPointerlockError() {
         console.error('THREE.PointerLockControls: Unable to use Pointer Lock API');
     }
-
+    // 鼠标移动
     onMouseMove(event) {
         if (this.isLocked && this.role) {
             let movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
@@ -52,14 +52,13 @@ class FirstPersonControls {
             this.yawObject.rotation.y -= movementX * 0.002;
 
             this.pitchObject.rotation.x -= movementY * 0.002;
-            // 这一步的目的是什么
             this.pitchObject.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.pitchObject.rotation.x));
-            //console.log(this.role.position)
             this.role.rotation.y -= movementX * 0.002;
+            // 通过总线先Web3D界面发送玩家移动事件
             FirstPersonControls.bus.emit('modifyRole');
         }
     }
-
+    // 监听按键按下
     onKeyDown(event) {
         switch (event.keyCode) {
             case KEY_W:
@@ -76,7 +75,7 @@ class FirstPersonControls {
                 break;
         }
     }
-
+    // 监听按键松开
     onKeyUp(event) {
         switch (event.keyCode) {
             case KEY_W:
@@ -130,7 +129,6 @@ class FirstPersonControls {
 
     connect() {
         this.domElement.addEventListener('click', this.domElement.requestPointerLock);
-        // 在函数后面添加bind(this)的目的是什么
         document.addEventListener('pointerlockchange', this.onPointerlockChange.bind(this), false);
         document.addEventListener('pointerlockerror', this.onPointerlockError.bind(this), false);
         document.addEventListener('mousemove', this.onMouseMove.bind(this), false);
@@ -141,7 +139,6 @@ class FirstPersonControls {
 
     disconnect() {
         this.domElement.removeEventListener('click', this.domElement.requestPointerLock);
-        // 在函数后面添加bind(this)的目的是什么
         document.removeEventListener('pointerlockchange', this.onPointerlockChange.bind(this), false);
         document.removeEventListener('pointerlockerror', this.onPointerlockError.bind(this), false);
         document.removeEventListener('mousemove', this.onMouseMove.bind(this), false);

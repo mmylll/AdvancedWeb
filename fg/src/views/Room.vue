@@ -6,6 +6,7 @@
 </template>
 
 <script>
+  // 展示3D场景和对话框
 import Web3D from "@/components/Web3D";
 import Chat from "@/components/Chat";
 
